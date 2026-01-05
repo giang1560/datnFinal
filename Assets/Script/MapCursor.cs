@@ -4,8 +4,7 @@ using UnityEngine;
 public class MapCursor : MonoBehaviour
 {
     [Header("References")]
-    public RubikMap map;
-    public RubikNavigator navigator;
+    private RubikMap map;
     public GhostManager ghost;
     public ArrowVisibilityManager arrowManager;
     public VectorBasedRotator vectorRotator; // ✅ MỚI: Rotator dựa trên vector
@@ -25,9 +24,11 @@ public class MapCursor : MonoBehaviour
     public float slideSpeed = 2f;
     public bool enableRotation = true;
 
-    void Start()
+    public void Init(RubikMap map, int maxMoves)
     {
-        simulator = new RubikSimulator(map, navigator);
+        this.map = map;
+        this.maxMoves = maxMoves;
+        simulator = new RubikSimulator(map);
 
         currentTile = map.GetPlayerSpawn();
         transform.position = map.GetWorldPosition(currentTile);

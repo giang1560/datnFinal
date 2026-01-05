@@ -4,15 +4,14 @@ using UnityEngine;
 /// Điều hướng di chuyển giữa các mặt Rubik
 /// (dựa trên bảng topology chuẩn).
 /// </summary>
-public class RubikNavigator : MonoBehaviour
+public static class RubikNavigator
 {
-    public int size;
-    private int max;
+    private static int max;
 
     // bảng topology sinh từ builder
-    private EdgeTransition[,] topology;
+    private static EdgeTransition[,] topology;
 
-    void Awake()
+    public static void Init(int size)
     {
         max = size - 1;
         topology = RubikTopologyBuilder.BuildStandardCrossTopology();
@@ -21,7 +20,7 @@ public class RubikNavigator : MonoBehaviour
     // ---------------------------------------------------------
     //  STEP 1 — trượt 1 bước trong cùng mặt
     // ---------------------------------------------------------
-    public TileCoord StepForward(TileCoord tile)
+    public static TileCoord StepForward(TileCoord tile)
     {
         Vector2Int delta = tile.localDelta;
 
@@ -39,7 +38,7 @@ public class RubikNavigator : MonoBehaviour
     // ---------------------------------------------------------
     //  STEP 2 — vượt mép sang mặt khác (TOPOLOGY) — ✅ FIXED
     // ---------------------------------------------------------
-    public TileCoord TransitionAcrossEdge(TileCoord from, TileCoord outOfBounds)
+    public static TileCoord TransitionAcrossEdge(TileCoord from, TileCoord outOfBounds)
     {
         // 1️⃣ xác định hướng thoát
         Direction exitDir = DetectDirection(from, outOfBounds);
@@ -95,7 +94,7 @@ public class RubikNavigator : MonoBehaviour
     // ---------------------------------------------------------
     //  Detect hướng thoát khỏi mặt
     // ---------------------------------------------------------
-    private Direction DetectDirection(TileCoord from, TileCoord exit)
+    private static Direction DetectDirection(TileCoord from, TileCoord exit)
     {
         if      (exit.y > max) return Direction.Up;
         else if (exit.y < 0)   return Direction.Down;
@@ -106,7 +105,7 @@ public class RubikNavigator : MonoBehaviour
     // ---------------------------------------------------------
     //  Convert Direction → delta vector
     // ---------------------------------------------------------
-    private Vector2Int DirectionToDelta(Direction d)
+    private static Vector2Int DirectionToDelta(Direction d)
     {
         switch (d)
         {
@@ -119,7 +118,7 @@ public class RubikNavigator : MonoBehaviour
     }
 
     // ---------------------------------------------------------
-    public bool IsInBounds(TileCoord t)
+    public static bool IsInBounds(TileCoord t)
     {
         return t.x >= 0 && t.x <= max &&
                t.y >= 0 && t.y <= max;

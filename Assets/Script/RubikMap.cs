@@ -1,11 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class RubikMap : MonoBehaviour
 {
     [Header("Map Settings")]
     public int mapSize = 3;
     public float tileSize = 1.0f;
+    public ArrowVisibilityManager arrowManager;
     public GameObject tilePrefab;
     
     [Header("Level Data")]
@@ -19,17 +21,36 @@ public class RubikMap : MonoBehaviour
     [Tooltip("Format: 'FaceID1,X1,Y1,FaceID2,X2,Y2' VD: '0,1,1,2,1,1' = Teleport từ Front(1,1) đến Back(1,1)")]
     public string[] teleportPairs;
 
+    [Header("Loading Canvas")]
+    [SerializeField] private Canvas loadingCanvas;
+
+    [SerializeField] private MapCursor mapCursor;
+
     private Dictionary<FaceID, TileCell[,]> mapData = new Dictionary<FaceID, TileCell[,]>();
     private Dictionary<string, TileCoord> teleportLinks = new Dictionary<string, TileCoord>();
     private TileCoord playerSpawn;
     private bool hasSpawn = false;
 
-    void Awake() { GenerateMap(); }
+    void Awake()
+    {
+        LevelRemoteConfig.Instance.OnLoadComplete += (levelConfigs) =>
+        {
+            levelRawData = levelConfigs[0].levelRawData;
+            mapSize = levelConfigs[0].mapSize;
+            GenerateMap();
+
+            RubikNavigator.Init(mapSize);
+            mapCursor.Init(this, levelConfigs[0].maxMoves);
+            arrowManager.Init();
+
+            loadingCanvas.enabled = false;
+        };
+    }
 
     public void GenerateMap()
     {
         ValidateLevelRawDataBySize();
-        
+
         foreach (Transform child in transform) Destroy(child.gameObject);
         mapData.Clear();
         teleportLinks.Clear();

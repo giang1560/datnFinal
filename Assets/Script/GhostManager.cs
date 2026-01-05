@@ -6,7 +6,6 @@ public class GhostManager : MonoBehaviour
     [Header("Settings")]
     public GameObject ghostPrefab;
     public RubikMap map;
-    public RubikNavigator navigator;
     public MapCursor playerCursor;
 
     private GameObject ghostInstance;
@@ -16,8 +15,8 @@ public class GhostManager : MonoBehaviour
 
     void Start()
     {
-        if (map != null && navigator != null)
-            simulator = new RubikSimulator(map, navigator);
+        if (map != null)
+            simulator = new RubikSimulator(map);
 
         if (ghostPrefab != null)
         {

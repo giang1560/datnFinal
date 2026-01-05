@@ -7,7 +7,6 @@ public class ArrowVisibilityManager : MonoBehaviour
     public GameObject arrowPrefab;
     public MapCursor cursor;
     public RubikMap rubikMap;
-    public RubikNavigator navigator;
     
     [Header("Settings")]
     public float arrowHeightOffset = 0.2f;
@@ -15,7 +14,7 @@ public class ArrowVisibilityManager : MonoBehaviour
 
     private readonly List<GameObject> activeArrows = new();
 
-    void OnEnable()
+    public void Init()
     {
         SpawnArrows();
     }
@@ -81,11 +80,11 @@ public class ArrowVisibilityManager : MonoBehaviour
     TileCoord SimulateOneSlideStep(TileCoord start, Vector2Int delta)
     {
         TileCoord current = new TileCoord(start.face, start.x, start.y, delta);
-        TileCoord next = navigator.StepForward(current);
+        TileCoord next = RubikNavigator.StepForward(current);
         
         if (!rubikMap.IsInsideFace(next))
         {
-            next = navigator.TransitionAcrossEdge(current, next);
+            next = RubikNavigator.TransitionAcrossEdge(current, next);
         }
         
         if (rubikMap.IsWall(next))

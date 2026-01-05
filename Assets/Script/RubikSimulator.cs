@@ -8,12 +8,10 @@ using UnityEngine;
 public class RubikSimulator
 {
     private readonly RubikMap map;
-    private readonly RubikNavigator navigator;
 
-    public RubikSimulator(RubikMap map, RubikNavigator navigator)
+    public RubikSimulator(RubikMap map)
     {
         this.map = map;
-        this.navigator = navigator;
     }
 
     // ─────────────────────────────────────────────
@@ -39,13 +37,13 @@ public class RubikSimulator
         while (safety++ < MAX_STEPS)
         {
             // 1. Tính ô tiếp theo (trượt thêm 1 bước)
-            TileCoord next = navigator.StepForward(current);
+            TileCoord next = RubikNavigator.StepForward(current);
 
             // 2. Nếu ra ngoài mặt → Chuyển sang mặt kế
             bool transitioned = false;
             if (!map.IsInsideFace(next))
             {
-                next = navigator.TransitionAcrossEdge(current, next);
+                next = RubikNavigator.TransitionAcrossEdge(current, next);
                 transitioned = true;
             }
 
