@@ -28,6 +28,8 @@ public class RubikMap : MonoBehaviour
 
     public void GenerateMap()
     {
+        ValidateLevelRawDataBySize();
+        
         foreach (Transform child in transform) Destroy(child.gameObject);
         mapData.Clear();
         teleportLinks.Clear();
@@ -71,6 +73,32 @@ public class RubikMap : MonoBehaviour
 
         // 3. Cấu hình Teleport
         ParseTeleportConfig();
+    }
+
+    void ValidateLevelRawDataBySize()
+    {
+        int rowLength = mapSize * mapSize;
+        if (levelRawData == null || levelRawData.Length < 6)
+        {
+            while (levelRawData.Length < 6)
+            {
+                System.Array.Resize(ref levelRawData, levelRawData.Length + 1);
+                levelRawData[levelRawData.Length - 1] = new string('0', rowLength);
+            }
+        }
+
+        foreach (FaceID f in System.Enum.GetValues(typeof(FaceID)))
+        {
+            int idx = (int)f;
+            if (levelRawData[idx] == null || levelRawData[idx].Length < rowLength)
+            {
+                levelRawData[idx] = levelRawData[idx] != null ? levelRawData[idx] : "";
+                while (levelRawData[idx].Length < rowLength)
+                {
+                    levelRawData[idx] += "0";
+                }
+            }
+        }
     }
 
     // --- PARSE LEVEL DATA ---
