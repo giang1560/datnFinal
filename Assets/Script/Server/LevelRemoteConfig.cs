@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using TMPro;
+using Michsky.UI.Heat;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
 {
@@ -17,8 +16,7 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
     [SerializeField] private List<LevelConfig> levelConfigs = new List<LevelConfig>();
 
     [Header("Loading scene")]
-    [SerializeField] private Slider myProgressBar;
-    [SerializeField] private TMP_Text myProgressText;
+    [SerializeField] private ProgressBar myProgressBar;
 
     public Action<List<LevelConfig>> OnLoadComplete;
 
@@ -43,8 +41,7 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
         {
             // đây chạy trên main thread vì hàm LoadCsvWithHttpClientAsync đảm bảo Report được gọi từ main
             // ví dụ: update slider hoặc TMP text
-            myProgressBar.value = p;
-            myProgressText.text = $"{Mathf.RoundToInt(p * 100f)}%";
+            myProgressBar.SetValue(p * 100f);
         });
 
         // fire-and-forget nhưng an toàn
