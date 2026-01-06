@@ -98,6 +98,8 @@ public class TileCell : MonoBehaviour
 
     public void ChangeType(TileType newType)
     {
+        if (_type == newType)
+            return;
         // cập nhật logic
         Type = newType;
 
@@ -106,9 +108,6 @@ public class TileCell : MonoBehaviour
         {
             specialData.isBroken = false;
         }
-
-        // thông báo tile đã thay đổi (cho Simulator / Map listeners)
-        OnChanged?.Invoke(this);
     }
 
 
@@ -124,19 +123,6 @@ public class TileCell : MonoBehaviour
         if (_isHighlighted)
         {
             _rend.material.color = Color.yellow;
-        }
-    }
-
-    /// <summary>
-    /// Thay đổi loại ô
-    /// </summary>
-    /// <param name="newType"></param>
-    public void ChangeType(TileType newType)
-    {
-        if (_type != newType)
-        {
-            _type = newType;
-            RefreshVisual();
         }
     }
 }
