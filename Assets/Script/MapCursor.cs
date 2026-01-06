@@ -19,6 +19,10 @@ public class MapCursor : MonoBehaviour
     private TileCoord currentTile;
     private bool isAnimating;
     private int movesLeft;
+    
+    [Header("Cracked Settings")]
+
+    [SerializeField] private float crackedBreakDelay = 0.4f;
 
     [Header("Movement")]
     public float slideSpeed = 2f;
@@ -67,6 +71,13 @@ public class MapCursor : MonoBehaviour
             {
                 Vector3 currentWorldPos = cell.transform.position;
                 yield return MoveTo(currentWorldPos);
+
+                TileCell previousCell = map.GetTileCell(previousTile);
+
+                if (previousCell != null && previousCell.Type == TileType.Cracked)
+                {
+                    StartCoroutine(BreakCrackedAfterLeave(previousCell, previousTile, crackedBreakDelay));
+                }
 
                 // ✅ ROTATION DỰA TRÊN VECTOR
                 if (step.isFaceChange && enableRotation && vectorRotator != null)
@@ -154,5 +165,19 @@ public class MapCursor : MonoBehaviour
 
         Debug.Log("[RESET] Level reset");
     }
+
+    private IEnumerator BreakCrackedAfterLeave(TileCell cell, TileCoord tile, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        // Player KHÔNG còn đứng trên tile này nữa → cho vỡ
+        if (!currentTile.Equals(tile) && cell.Type == TileType.Cracked)
+        {
+            cell.OnPlayerPassThrough();
+        }
+    }
+
+
+
 
 }

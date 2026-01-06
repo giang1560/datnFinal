@@ -164,10 +164,7 @@ public class RubikSimulator
                 // ──────────────────────────────────
                 case TileType.Cracked:
                     // ✅ Xử lý Cracked Tile
-                    if (!cell.specialData.isBroken)
-                    {
-                        cell.OnPlayerPassThrough();
-                    }
+                    step.stepResult = StopReason.None;
                     // Tiếp tục trượt (không dừng)
                     continue;
 
