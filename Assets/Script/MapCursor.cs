@@ -7,7 +7,7 @@ public class MapCursor : MonoBehaviour
     private RubikMap map;
     public GhostManager ghost;
     public ArrowVisibilityManager arrowManager;
-    public VectorBasedRotator vectorRotator; // ✅ MỚI: Rotator dựa trên vector
+    public VectorBasedRotator vectorRotator;
 
     [Header("Game")]
     public int maxMoves = 10;
@@ -21,7 +21,6 @@ public class MapCursor : MonoBehaviour
     private int movesLeft;
     
     [Header("Cracked Settings")]
-
     [SerializeField] private float crackedBreakDelay = 0.4f;
 
     [Header("Movement")]
@@ -72,19 +71,22 @@ public class MapCursor : MonoBehaviour
                 Vector3 currentWorldPos = cell.transform.position;
                 yield return MoveTo(currentWorldPos);
 
+                // ✅ FIX: Xử lý Cracked tile NGAY KHI RỜI đi
                 TileCell previousCell = map.GetTileCell(previousTile);
-
                 if (previousCell != null && previousCell.Type == TileType.Cracked)
                 {
-                    StartCoroutine(BreakCrackedAfterLeave(previousCell, previousTile, crackedBreakDelay));
+                    // ✅ VỠ NGAY LẬP TỨC về logic
+                    previousCell.OnPlayerPassThrough();
+                    
+                    // ✅ Visual effect delay (optional)
+                    // StartCoroutine(PlayCrackedBreakAnimation(previousCell, crackedBreakDelay));
                 }
 
-                // ✅ ROTATION DỰA TRÊN VECTOR
+                // ROTATION DỰA TRÊN VECTOR
                 if (step.isFaceChange && enableRotation && vectorRotator != null)
                 {
                     bool rotationComplete = false;
                     
-                    // Tính vector di chuyển TRƯỚC KHI chuyển mặt
                     vectorRotator.RotateBasedOnMovement(
                         previousWorldPos, 
                         currentWorldPos, 
@@ -166,18 +168,11 @@ public class MapCursor : MonoBehaviour
         Debug.Log("[RESET] Level reset");
     }
 
-    private IEnumerator BreakCrackedAfterLeave(TileCell cell, TileCoord tile, float delay)
+    // ✅ OPTIONAL: Animation effect cho Cracked (không ảnh hưởng logic)
+    private IEnumerator PlayCrackedBreakAnimation(TileCell cell, float delay)
     {
+        // Có thể thêm particle effect, sound, shake, etc.
         yield return new WaitForSeconds(delay);
-
-        // Player KHÔNG còn đứng trên tile này nữa → cho vỡ
-        if (!currentTile.Equals(tile) && cell.Type == TileType.Cracked)
-        {
-            cell.OnPlayerPassThrough();
-        }
+        // Animation finished
     }
-
-
-
-
 }

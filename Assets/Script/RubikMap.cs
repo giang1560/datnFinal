@@ -30,6 +30,7 @@ public class RubikMap : MonoBehaviour
     private Dictionary<string, TileCoord> teleportLinks = new Dictionary<string, TileCoord>();
     private TileCoord playerSpawn;
     private bool hasSpawn = false;
+    public event System.Action<TileCell> OnTileChanged;
 
     void Awake()
     {
@@ -83,10 +84,11 @@ public class RubikMap : MonoBehaviour
                     TileType type = ParseType(fId, x, y);
                     
                     cell.Initialize(fId, x, y, type);
+                    cell.OnChanged += HandleTileChanged;
                     cells[x, y] = cell;
                 }
             }
-            mapData.Add(fId, cells);
+            mapData.Add(fId, cells);      
         }
 
         // 2. Cấu hình OneWay
@@ -282,14 +284,10 @@ public class RubikMap : MonoBehaviour
             c.y >= 0 && c.y < mapSize;
     }
 
-    public bool IsWall(TileCoord c)
+    public bool IsWall(TileCoord t)
     {
-        TileCell cell = GetTileCell(c);
+        var cell = GetTileCell(t);
         if (cell == null) return true;
-
-        if (cell.Type == TileType.Cracked && cell.specialData.isBroken)
-            return true;
-
         return cell.Type == TileType.Wall;
     }
 
@@ -352,6 +350,8 @@ public class RubikMap : MonoBehaviour
         TileCell cell = GetTileCell(c);
         return cell ? cell.transform.position : Vector3.zero;
     }
-
-
+        private void HandleTileChanged(TileCell cell)
+    {
+        OnTileChanged?.Invoke(cell);
+    }
 }

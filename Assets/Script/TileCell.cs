@@ -6,6 +6,8 @@ public class TileCell : MonoBehaviour
     public FaceID face;
     public int x;
     public int y;
+    public System.Action<TileCell> OnChanged;
+    
     
     [SerializeField] private TileType _type;
     [SerializeField] private bool _isHighlighted;
@@ -15,9 +17,8 @@ public class TileCell : MonoBehaviour
     
     private Renderer _rend;
     private int originalDurability;
-    
-    // ✅ LƯU LOẠI Ô BAN ĐẦU để reset
     private TileType originalType;
+    
 
     public bool IsHighlighted
     {
@@ -66,16 +67,20 @@ public class TileCell : MonoBehaviour
         if (_type == TileType.Cracked && !specialData.isBroken)
         {
             specialData.durability--;
-            
+
             if (specialData.durability <= 0)
             {
                 specialData.isBroken = true;
                 _type = TileType.Wall;
+
+                // 🔔 BÁO TILE ĐÃ THAY ĐỔI
+                OnChanged?.Invoke(this);
             }
-            
+
             RefreshVisual();
         }
     }
+
 
     public void ResetTile()
     {
