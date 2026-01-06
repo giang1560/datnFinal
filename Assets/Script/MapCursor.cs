@@ -19,9 +19,6 @@ public class MapCursor : MonoBehaviour
     private TileCoord currentTile;
     private bool isAnimating;
     private int movesLeft;
-    
-    [Header("Cracked Settings")]
-    [SerializeField] private float crackedBreakDelay = 0.4f;
 
     [Header("Movement")]
     public float slideSpeed = 2f;
@@ -71,29 +68,63 @@ public class MapCursor : MonoBehaviour
                 Vector3 currentWorldPos = cell.transform.position;
                 yield return MoveTo(currentWorldPos);
 
-                // ✅ FIX: Xử lý Cracked tile NGAY KHI RỜI đi
+                // ✅ Xử lý Cracked tile NGAY KHI RỜI đi
                 TileCell previousCell = map.GetTileCell(previousTile);
                 if (previousCell != null && previousCell.Type == TileType.Cracked)
                 {
-                    // ✅ VỠ NGAY LẬP TỨC về logic
                     previousCell.OnPlayerPassThrough();
-                    
-                    // ✅ Visual effect delay (optional)
-                    // StartCoroutine(PlayCrackedBreakAnimation(previousCell, crackedBreakDelay));
                 }
 
-                // ROTATION DỰA TRÊN VECTOR
-                if (step.isFaceChange && enableRotation && vectorRotator != null)
+                // ✅ Xử lý Teleport tile KHI ĐẾN
+                if (step.stepResult == StopReason.Teleported)
                 {
-                    bool rotationComplete = false;
+                    // Đổi cả 2 ô teleport thành Floor
+                    TileCell sourceCell = map.GetTileCell(previousTile);
+                    TileCell destCell = map.GetTileCell(currentTile);
                     
-                    vectorRotator.RotateBasedOnMovement(
-                        previousWorldPos, 
-                        currentWorldPos, 
-                        () => rotationComplete = true
-                    );
-                    
-                    yield return new WaitUntil(() => rotationComplete);
+                    if (sourceCell != null && sourceCell.Type == TileType.Teleport)
+                        sourceCell.Type = TileType.Floor;
+                    if (destCell != null && destCell.Type == TileType.Teleport)
+                        destCell.Type = TileType.Floor;
+                        
+                    Debug.Log($"[MapCursor] Teleport used: {previousTile} ↔ {currentTile}");
+                }
+
+                // ─────────────────────────────────────────────────
+                // ✅ ROTATION LOGIC: Phân biệt Teleport và Face Change
+                // ─────────────────────────────────────────────────
+                if (enableRotation && vectorRotator != null)
+                {
+                    // 🔷 Case 1: TELEPORT → Dùng RotateForTeleport()
+                    if (step.stepResult == StopReason.Teleported)
+                    {
+                        bool rotationComplete = false;
+
+                        Debug.Log($"[MapCursor] Teleport rotation: {previousWorldPos} → {currentWorldPos}");
+                        
+                        vectorRotator.RotateForTeleport(
+                            previousWorldPos,
+                            currentWorldPos,
+                            () => rotationComplete = true
+                        );
+
+                        yield return new WaitUntil(() => rotationComplete);
+                    }
+                    // 🔷 Case 2: FACE CHANGE (Normal) → Dùng RotateBasedOnMovement()
+                    else if (step.isFaceChange)
+                    {
+                        bool rotationComplete = false;
+
+                        Debug.Log($"[MapCursor] Face change rotation: {previousWorldPos} → {currentWorldPos}");
+                        
+                        vectorRotator.RotateBasedOnMovement(
+                            previousWorldPos,
+                            currentWorldPos,
+                            () => rotationComplete = true
+                        );
+
+                        yield return new WaitUntil(() => rotationComplete);
+                    }
                 }
 
                 previousWorldPos = currentWorldPos;
@@ -166,13 +197,5 @@ public class MapCursor : MonoBehaviour
         }
 
         Debug.Log("[RESET] Level reset");
-    }
-
-    // ✅ OPTIONAL: Animation effect cho Cracked (không ảnh hưởng logic)
-    private IEnumerator PlayCrackedBreakAnimation(TileCell cell, float delay)
-    {
-        // Có thể thêm particle effect, sound, shake, etc.
-        yield return new WaitForSeconds(delay);
-        // Animation finished
     }
 }

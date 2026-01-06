@@ -4,6 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Chạy simulation trượt (Ice Sliding) với ring-based topology.
 /// ✅ FIXED: Cracked tile xử lý đúng - không cho đi xuyên qua ô đã vỡ
+/// ✅ FIXED: Teleport không đổi type trong simulation - chỉ đổi khi player thực sự đến
 /// </summary>
 public class RubikSimulator
 {
@@ -134,40 +135,42 @@ public class RubikSimulator
                 {
                     TileCoord destination = map.GetTeleportDestination(current);
 
+                    // Nếu tele tới chính nó → coi như Sticky
                     if (destination.face == current.face &&
                         destination.x == current.x &&
                         destination.y == current.y)
                     {
+                        step.stepResult = StopReason.Sticky;
                         result.stopReason = StopReason.Sticky;
                         return result;
                     }
 
+                    // Ghi lại bước Tele
                     SimulationStep teleStep = new SimulationStep
                     {
                         coord = destination,
                         isFaceChange = (destination.face != current.face),
                         stepResult = StopReason.Teleported
                     };
-
                     result.steps.Add(teleStep);
 
-                    map.DisableTeleportPair(current);
+                    // ⭐⭐⭐ QUAN TRỌNG ⭐⭐⭐
+                    // Biến cả 2 ô teleport thành FLOOR trên MAP THẬT
+                    map.ConvertTeleportPairToFloor(current);
 
-                    TileCell sourceCell = map.GetTileCell(current);
-                    TileCell destCell = map.GetTileCell(destination);
-                    
-                    if (sourceCell != null) sourceCell.Type = TileType.Floor;
-                    if (destCell != null) destCell.Type = TileType.Floor;
-
+                    // Set vị trí mới cho player
                     current = new TileCoord(
                         destination.face,
                         destination.x,
                         destination.y,
-                        current.localDelta
+                        current.localDelta   // giữ hướng trượt
                     );
 
-                    continue;
+                    // Sau teleport: DỪNG SLIDE → chờ input mới
+                    result.stopReason = StopReason.Teleported;
+                    return result;
                 }
+
 
                 // ─────────────────────────────────────────────────────────
                 // ✅ CRACKED: KHÔNG CẦN XỬ LÝ Ở ĐÂY NỮA (đã xử lý ở đầu loop)
@@ -189,9 +192,9 @@ public class RubikSimulator
         return result;
     }
 
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────
     //  ✅ HELPER: Kiểm tra ô có bị block không
-    // ─────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────
     private bool IsBlocked(TileCoord coord, Dictionary<string, int> crackedDurability)
     {
         TileCell cell = map.GetTileCell(coord);

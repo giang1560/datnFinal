@@ -32,6 +32,8 @@ public class TileCell : MonoBehaviour
         set { if(_type != value) { _type = value; RefreshVisual(); } }
     }
 
+    
+
     public void Initialize(FaceID f, int x, int y, TileType t)
     {
         this.face = f;
@@ -96,6 +98,22 @@ public class TileCell : MonoBehaviour
         
         RefreshVisual();
     }
+
+    public void ChangeType(TileType newType)
+    {
+        // cập nhật logic
+        Type = newType;
+
+        // nếu tile từng là cracked → reset flag nứt
+        if (newType != TileType.Cracked)
+        {
+            specialData.isBroken = false;
+        }
+
+        // thông báo tile đã thay đổi (cho Simulator / Map listeners)
+        OnChanged?.Invoke(this);
+    }
+
 
     public void RefreshVisual()
     {
