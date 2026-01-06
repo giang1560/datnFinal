@@ -134,7 +134,12 @@ public class MapCursor : MonoBehaviour
         StopAllCoroutines();
         isAnimating = false;
 
+        if (vectorRotator != null)
+            vectorRotator.ResetRotation();
+
         movesLeft = maxMoves;
+
+        map.ResetAllTiles();
 
         currentTile = map.GetPlayerSpawn();
         transform.position = map.GetWorldPosition(currentTile);
@@ -149,4 +154,5 @@ public class MapCursor : MonoBehaviour
 
         Debug.Log("[RESET] Level reset");
     }
+
 }

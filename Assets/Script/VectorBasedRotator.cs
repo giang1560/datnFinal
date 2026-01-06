@@ -140,4 +140,15 @@ public class VectorBasedRotator : MonoBehaviour
         onComplete?.Invoke();
         currentRotation = null;
     }
+
+        public void ResetRotation()
+    {
+        if (currentRotation != null)
+            StopCoroutine(currentRotation);
+
+        rubikCube.rotation = Quaternion.identity;
+        currentRotation = null;
+
+        Debug.Log("[Rotator] Reset rotation → Identity");
+    }
 }
