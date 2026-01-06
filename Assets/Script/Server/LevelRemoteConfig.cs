@@ -213,4 +213,21 @@ public class LevelConfig
     public int mapSize;
     public int maxMoves;
     public string[] levelRawData;
+
+    public string ToCSVRow()
+    {
+        List<string> cols = new List<string>
+        {
+            levelID.ToString(),
+            mapSize.ToString(),
+            maxMoves.ToString()
+        };
+
+        if (levelRawData != null)
+        {
+            cols.AddRange(levelRawData);
+        }
+
+        return string.Join("\t", cols);
+    }
 }

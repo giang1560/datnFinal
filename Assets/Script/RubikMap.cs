@@ -84,7 +84,6 @@ public class RubikMap : MonoBehaviour
                     TileType type = ParseType(fId, x, y);
                     
                     cell.Initialize(fId, x, y, type);
-                    cell.OnChanged += HandleTileChanged;
                     cells[x, y] = cell;
                 }
             }
@@ -96,6 +95,56 @@ public class RubikMap : MonoBehaviour
 
         // 3. Cấu hình Teleport
         ParseTeleportConfig();
+    }
+
+    /// <summary>
+    /// Xuất dữ liệu level hiện tại thành LevelConfig
+    /// </summary>
+    /// <returns></returns>
+    public LevelConfig ExportLevelConfig()
+    {
+        LevelConfig config = new LevelConfig();
+        config.mapSize = mapSize;
+        int rowLength = mapSize * mapSize;
+        config.levelRawData = new string[6];
+
+        foreach (FaceID f in Enum.GetValues(typeof(FaceID)))
+        {
+            char[] rowChars = new char[rowLength];
+            TileCell[,] cells = mapData[f];
+
+            for (int y = 0; y < mapSize; y++)
+            {
+                for (int x = 0; x < mapSize; x++)
+                {
+                    TileCell cell = cells[x, y];
+                    char c = '0'; // Default Floor
+
+                    switch (cell.Type)
+                    {
+                        case TileType.Wall: c = '1'; break;
+                        case TileType.Trap: c = 'T'; break;
+                        case TileType.Sticky: c = 'S'; break;
+                        case TileType.Goal: c = 'X'; break;
+                        case TileType.OneWay: c = 'O'; break;
+                        case TileType.Teleport: c = 'P'; break;
+                        case TileType.Cracked: c = 'C'; break;
+                    }
+
+                    // Đánh dấu spawn
+                    if (playerSpawn.face == f && playerSpawn.x == x && playerSpawn.y == y)
+                    {
+                        c = 'M';
+                    }
+
+                    rowChars[y * mapSize + x] = c;
+                }
+            }
+
+            config.levelRawData[(int)f] = new string(rowChars);
+        }
+
+        return config;
     }
 
     void ValidateLevelRawDataBySize()
@@ -349,9 +398,5 @@ public class RubikMap : MonoBehaviour
     {
         TileCell cell = GetTileCell(c);
         return cell ? cell.transform.position : Vector3.zero;
-    }
-        private void HandleTileChanged(TileCell cell)
-    {
-        OnTileChanged?.Invoke(cell);
     }
 }

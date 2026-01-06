@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using TMPro;
+using System;
 
 namespace Michsky.MUIP
 {
@@ -45,6 +46,7 @@ namespace Michsky.MUIP
         public SelectorEvent onValueChanged;
         [System.Serializable] public class ItemTextChangedEvent : UnityEvent<TMP_Text> { }
         public ItemTextChangedEvent onItemTextChanged;
+        public Action<int> onButtonClick;
 
         [System.Serializable]
         public class Item
@@ -255,8 +257,8 @@ namespace Michsky.MUIP
         }
 
         // Obsolete
-        public void PreviousClick() { PreviousItem(); }
-        public void ForwardClick() { NextItem(); }
+        public void PreviousClick() {PreviousItem(); onButtonClick.Invoke(index);}
+        public void ForwardClick() { NextItem(); onButtonClick.Invoke(index);}
 
         public void CreateNewItem(string title)
         {

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3156e2d09164a1b4d98e342107cd2e37, type: 3}
+  m_Name: TileDefine
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefine
+  tilePrefabs:
+  - {fileID: 2586569280863099761, guid: 495e0b798a80b5849ac79d836e0ad15d, type: 3}
+  - {fileID: 3137931261535038094, guid: d37410b2f213d31458c23364d6f181a3, type: 3}
+  - {fileID: 2586569280863099761, guid: f2e33c6a103ec8545833082463759f8d, type: 3}
+  - {fileID: 2586569280863099761, guid: f2becbd3910483a4984fd6b6b3bd3fcc, type: 3}
+  - {fileID: 2586569280863099761, guid: 73f73cb3e544c884cb5845ab72382df0, type: 3}
+  - {fileID: 2586569280863099761, guid: 63d295c8683ba47428c0b020dbd1239c, type: 3}
+  - {fileID: 2586569280863099761, guid: e55cc01c45eb8814ebe64ae9bc4fa369, type: 3}
+  - {fileID: 3137931261535038094, guid: b2ed72f9f364f114f9a6a79524377a57, type: 3}
