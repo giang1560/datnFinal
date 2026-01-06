@@ -4,6 +4,7 @@ using System.Collections;
 /// <summary>
 /// Xoay Rubik dựa trên vector di chuyển của player
 /// Logic: Dựa vào vector AB (từ vị trí cũ đến vị trí mới)
+/// ✅ UPDATED: Thêm logic đặc biệt cho Teleport
 /// </summary>
 public class VectorBasedRotator : MonoBehaviour
 {
@@ -12,7 +13,8 @@ public class VectorBasedRotator : MonoBehaviour
 
     [Header("Settings")]
     public float rotationSpeed = 3f;
-    public float angleThreshold = 10f; // Độ lệch góc chấp nhận để coi là vuông góc
+    public float angleThreshold = 10f;
+    public float verticalThreshold = 0.9f; // |AB.y| > 0.9 → rotate X 180°
 
     private Coroutine currentRotation;
 
@@ -21,15 +23,13 @@ public class VectorBasedRotator : MonoBehaviour
     /// </summary>
     public void RotateBasedOnMovement(Vector3 fromPos, Vector3 toPos, System.Action onComplete = null)
     {
-        // Vector AB trong world space
         Vector3 moveDir = (toPos - fromPos).normalized;
 
         // Trục world
-        Vector3 worldX = Vector3.right;   // (1, 0, 0)
-        Vector3 worldZ = Vector3.forward; // (0, 0, 1)
-        Vector3 worldY = Vector3.up;      // (0, 1, 0)
+        Vector3 worldX = Vector3.right;
+        Vector3 worldZ = Vector3.forward;
+        Vector3 worldY = Vector3.up;
 
-        // Tính góc với các trục
         float angleWithX = Vector3.Angle(moveDir, worldX);
         float angleWithZ = Vector3.Angle(moveDir, worldZ);
         float angleWithY = Vector3.Angle(moveDir, worldY);
@@ -44,63 +44,45 @@ public class VectorBasedRotator : MonoBehaviour
         // Vuông góc với OZ (góc gần 90°)
         if (Mathf.Abs(angleWithZ - 90f) < angleThreshold)
         {
-            rotationAxis = Vector3.forward; // Xoay quanh trục Z
-
-            // Kiểm tra cùng chiều hay ngược chiều OX
+            rotationAxis = Vector3.forward;
             float dotX = Vector3.Dot(moveDir, worldX);
 
-            if (dotX > 0) // Cùng chiều OX
-            {
+            if (dotX > 0)
                 rotationAngle = 90f;
-            }
-            else // Ngược chiều OX
-            {
+            else
                 rotationAngle = -90f;
-            }
 
             Debug.Log($"[VectorRotator] Vuông góc OZ → Xoay Z {rotationAngle}°");
         }
         // Vuông góc với OX (góc gần 90°)
         else if (Mathf.Abs(angleWithX - 90f) < angleThreshold)
         {
-            rotationAxis = Vector3.right; // Xoay quanh trục X
-
-            // Kiểm tra cùng chiều hay ngược chiều OZ
+            rotationAxis = Vector3.right;
             float dotZ = Vector3.Dot(moveDir, worldZ);
 
-            if (dotZ > 0) // Cùng chiều OZ
-            {
+            if (dotZ > 0)
                 rotationAngle = -90f;
-            }
-            else // Ngược chiều OZ
-            {
+            else
                 rotationAngle = 90f;
-            }
 
             Debug.Log($"[VectorRotator] Vuông góc OX → Xoay X {rotationAngle}°");
         }
-        // Vuong góc với OY (góc gần 90°)
+        // Vuông góc với OY (góc gần 90°)
         else if (Mathf.Abs(angleWithY - 90f) < angleThreshold)
         {
-            rotationAxis = Vector3.up; // Xoay quanh trục Y
-
-            // Kiểm tra cùng chiều hay ngược chiều OZ
+            rotationAxis = Vector3.up;
             float dotZ = Vector3.Dot(moveDir, worldZ);
 
-            if (dotZ > 0) // Cùng chiều OZ
-            {
+            if (dotZ > 0)
                 rotationAngle = 90f;
-            }
-            else // Ngược chiều OZ
-            {
+            else
                 rotationAngle = -90f;
-            }
 
             Debug.Log($"[VectorRotator] Vuông góc OY → Xoay Y {rotationAngle}°");
         }
         else
         {
-            Debug.LogWarning($"[VectorRotator] Vector không vuông góc với cả OX và OZ! angleX={angleWithX:F1}° angleZ={angleWithZ:F1}°");
+            Debug.LogWarning($"[VectorRotator] Vector không vuông góc với trục! angleX={angleWithX:F1}° angleZ={angleWithZ:F1}°");
             onComplete?.Invoke();
             return;
         }
@@ -111,21 +93,92 @@ public class VectorBasedRotator : MonoBehaviour
 
         currentRotation = StartCoroutine(RotateByAxisRoutine(rotationAxis, rotationAngle, onComplete));
     }
-    
+
+    /// <summary>
+    /// ✅ MỚI: Logic xoay đặc biệt cho Teleport
+    /// 1. Tính vector AB = normalize(B - A)
+    /// 2. Nếu |AB.y| > 0.9 → xoay X 180°
+    /// 3. Chiếu lên mặt phẳng XZ: proj = normalize((AB.x, 0, AB.z))
+    /// 4. Tính dot với ±X, ±Z
+    /// 5. Hướng có dot lớn nhất quyết định góc xoay
+    /// </summary>
+    public void RotateForTeleport(Vector3 fromPos, Vector3 toPos, System.Action onComplete = null)
+    {
+        // 1️⃣ Tính vector AB
+        Vector3 AB = (toPos - fromPos).normalized;
+
+        Debug.Log($"[Teleport] AB = {AB}, |AB.y| = {Mathf.Abs(AB.y)}");
+
+        // 2️⃣ Kiểm tra chuyển động theo trục Y (lên/xuống)
+        if (Mathf.Abs(AB.y) > verticalThreshold)
+        {
+            Debug.Log($"[Teleport] Vertical movement detected → Rotate X 180°");
+            
+            if (currentRotation != null)
+                StopCoroutine(currentRotation);
+
+            currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.right, 180f, onComplete));
+            return;
+        }
+
+        // 3️⃣ Chiếu lên mặt phẳng XZ
+        Vector3 proj = new Vector3(AB.x, 0f, AB.z).normalized;
+
+        // 4️⃣ Tính dot product với 4 hướng cơ bản
+        float dotPosX = Vector3.Dot(proj, Vector3.right);    // +X
+        float dotNegX = Vector3.Dot(proj, Vector3.left);     // -X
+        float dotPosZ = Vector3.Dot(proj, Vector3.forward);  // +Z
+        float dotNegZ = Vector3.Dot(proj, Vector3.back);     // -Z
+
+        // 5️⃣ Tìm hướng có dot lớn nhất
+        float maxDot = Mathf.Max(dotPosX, dotNegX, dotPosZ, dotNegZ);
+
+        Vector3 rotationAxis = Vector3.zero;
+        float rotationAngle = 0f;
+
+        if (Mathf.Approximately(maxDot, dotPosX))
+        {
+            // Hướng +X → Xoay Z 90°
+            rotationAxis = Vector3.forward;
+            rotationAngle = 90f;
+            Debug.Log("[Teleport] Direction: +X → Rotate Z +90°");
+        }
+        else if (Mathf.Approximately(maxDot, dotNegX))
+        {
+            // Hướng -X → Xoay Z -90°
+            rotationAxis = Vector3.forward;
+            rotationAngle = -90f;
+            Debug.Log("[Teleport] Direction: -X → Rotate Z -90°");
+        }
+        else if (Mathf.Approximately(maxDot, dotPosZ))
+        {
+            // Hướng +Z → Xoay X -90°
+            rotationAxis = Vector3.right;
+            rotationAngle = -90f;
+            Debug.Log("[Teleport] Direction: +Z → Rotate X -90°");
+        }
+        else if (Mathf.Approximately(maxDot, dotNegZ))
+        {
+            // Hướng -Z → Xoay X +90°
+            rotationAxis = Vector3.right;
+            rotationAngle = 90f;
+            Debug.Log("[Teleport] Direction: -Z → Rotate X +90°");
+        }
+
+        // 6️⃣ Thực hiện xoay
+        if (currentRotation != null)
+            StopCoroutine(currentRotation);
+
+        currentRotation = StartCoroutine(RotateByAxisRoutine(rotationAxis, rotationAngle, onComplete));
+    }
+
     /// <summary>
     /// Xoay quanh trục theo world space
     /// </summary>
-    /// <param name="axis"></param>
-    /// <param name="angle"></param>
-    /// <param name="onComplete"></param>
-    /// <returns></returns>
     IEnumerator RotateByAxisRoutine(Vector3 axis, float angle, System.Action onComplete)
     {
         Quaternion startRotation = rubikCube.rotation;
-
-        // WORLD SPACE rotation
-        Quaternion targetWorldRotation =
-            Quaternion.AngleAxis(angle, axis.normalized) * startRotation;
+        Quaternion targetWorldRotation = Quaternion.AngleAxis(angle, axis.normalized) * startRotation;
 
         float t = 0f;
 
@@ -141,7 +194,7 @@ public class VectorBasedRotator : MonoBehaviour
         currentRotation = null;
     }
 
-        public void ResetRotation()
+    public void ResetRotation()
     {
         if (currentRotation != null)
             StopCoroutine(currentRotation);

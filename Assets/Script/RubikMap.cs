@@ -307,6 +307,32 @@ public class RubikMap : MonoBehaviour
         }
     }
 
+        public void ConvertTeleportPairToFloor(TileCoord coord)
+    {
+        string key1 = $"{(int)coord.face}_{coord.x}_{coord.y}";
+        
+        if (!teleportLinks.ContainsKey(key1))
+            return;
+
+        TileCoord dest = teleportLinks[key1];
+        string key2 = $"{(int)dest.face}_{dest.x}_{dest.y}";
+
+        // Lấy cell thật
+        TileCell a = GetTileCell(coord);
+        TileCell b = GetTileCell(dest);
+
+        if (a != null)
+            a.ChangeType(TileType.Floor);
+
+        if (b != null)
+            b.ChangeType(TileType.Floor);
+
+        // Xóa link
+        teleportLinks.Remove(key1);
+        teleportLinks.Remove(key2);
+    }
+
+
     public void ResetAllTiles()
     {
         // Reset visual và state của tiles
