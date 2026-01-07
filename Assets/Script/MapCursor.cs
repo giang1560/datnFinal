@@ -156,19 +156,30 @@ public class MapCursor : MonoBehaviour
 
     void HandleStop(StopReason reason)
     {
+        if(movesLeft <= 0 && reason != StopReason.Goal && reason != StopReason.Trap)
+        {
+            reason = StopReason.OutOfMoves;
+        }
+
         switch (reason)
         {
             case StopReason.Goal:
                 Debug.Log("WIN!");
+                GameUIManager.Instance.ShowWin();
                 break;
 
             case StopReason.Trap:
                 Debug.Log("LOSE (trap)");
+                GameUIManager.Instance.ShowLose(StopReason.Trap);
                 break;
 
             case StopReason.Wall:
             case StopReason.Sticky:
                 Debug.Log("Stop.");
+                break;
+            case StopReason.OutOfMoves:
+                Debug.Log("LOSE (out of moves)");
+                GameUIManager.Instance.ShowLose(StopReason.OutOfMoves);
                 break;
         }
     }

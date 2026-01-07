@@ -1,13 +1,16 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using Michsky.MUIP;
+using DG.Tweening;
 
-public class GameUIManager : MonoBehaviour
+public class GameUIManager : Singleton<GameUIManager>
 {
     [Header("UI References")]
     public MapCursor mapCursor;
+    public RubikMap rubikMap;
     public GameObject winPanel;
     public GameObject losePanel;
+    [SerializeField] private ModalWindowManager modalWindowManager;
     public TextMeshProUGUI loseReasonText;
     public TextMeshProUGUI moveCounterText;
     // ĐÃ XÓA: public GhostManager ghostManager;
@@ -31,23 +34,39 @@ public class GameUIManager : MonoBehaviour
 
     public void ShowWin()
     {
-        winPanel.SetActive(true);
-        losePanel.SetActive(false);
+        modalWindowManager.onConfirm.RemoveAllListeners();
+        modalWindowManager.onCancel.RemoveAllListeners();
+        modalWindowManager.onConfirm.AddListener(OnNextLevelButton);
+        modalWindowManager.onCancel.AddListener(OnRetryButton);
+        modalWindowManager.onConfirm.AddListener(modalWindowManager.Close);
+        modalWindowManager.onCancel.AddListener(modalWindowManager.Close);
+        modalWindowManager.titleText = "LEVEL COMPLETE!";
+        modalWindowManager.descriptionText = "Chúc mừng bạn đã hoàn thành cấp độ này!";
+        modalWindowManager.confirmButton.SetText("Next Level");
+        modalWindowManager.cancelButton.SetText("Retry");
+        modalWindowManager.Open(false);
     }
 
     public void ShowLose(StopReason reason)
     {
-        winPanel.SetActive(false);
-        losePanel.SetActive(true);
-        if (loseReasonText != null)
+        modalWindowManager.onConfirm.RemoveAllListeners();
+        modalWindowManager.onConfirm.AddListener(OnRetryButton);
+        modalWindowManager.onConfirm.AddListener(modalWindowManager.Close);
+        modalWindowManager.titleText = "LEVEL FAILED!";
+        switch (reason)
         {
-            switch (reason)
-            {
-                case StopReason.Trap: loseReasonText.text = "THẤT BẠI!\nBạn đã rơi vào bẫy."; break;
-                case StopReason.OutOfMoves: loseReasonText.text = "THẤT BẠI!\nHết lượt đi."; break;
-                default: loseReasonText.text = "GAME OVER"; break;
-            }
+            case StopReason.OutOfMoves:
+                modalWindowManager.descriptionText = "Bạn đã hết lượt di chuyển!";
+                break;
+            case StopReason.Trap:
+                modalWindowManager.descriptionText = "Bạn đã chạm vào ô bẫy!";
+                break;
+            default:
+                modalWindowManager.descriptionText = "Bạn đã thất bại!";
+                break;
         }
+        modalWindowManager.confirmButton.SetText("Retry");
+        modalWindowManager.Open(true);
     }
 
     public void HideAllPanels()
@@ -64,7 +83,9 @@ public class GameUIManager : MonoBehaviour
 
     public void OnNextLevelButton()
     {
-        HideAllPanels();
-        if (mapCursor != null) mapCursor.ResetLevel();
+        DOVirtual.DelayedCall(0.5f, () =>
+        {
+            rubikMap.LoadNextLevelByTriggerButton();
+        });
     }
 }

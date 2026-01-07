@@ -16,12 +16,23 @@ public class TileSelector : MonoBehaviour
     [SerializeField] private HorizontalSelector horizontalSelector;
     [SerializeField] private ButtonManager exportButton;
     [SerializeField] private RubikMap rubikMap;
+    [SerializeField] private GameObject gameUI;
     private LevelConfig currentLevelConfig;
 
     private void Awake()
     {
         horizontalSelector.onButtonClick = SelectTileType;
         exportButton.onClick.AddListener(ExportMapData);
+    }
+
+    void OnEnable()
+    {
+        gameUI.SetActive(false);
+    }
+
+    void OnDisable()
+    {
+        gameUI.SetActive(true);
     }
 
     public TileCell GetTileCellUnderCursor(Camera cam)
