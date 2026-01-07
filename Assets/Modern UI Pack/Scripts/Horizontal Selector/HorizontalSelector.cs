@@ -47,6 +47,7 @@ namespace Michsky.MUIP
         [System.Serializable] public class ItemTextChangedEvent : UnityEvent<TMP_Text> { }
         public ItemTextChangedEvent onItemTextChanged;
         public Action<int> onButtonClick;
+        public bool isActive = true;
 
         [System.Serializable]
         public class Item
@@ -115,7 +116,7 @@ namespace Michsky.MUIP
 
         public void PreviousItem()
         {
-            if (items.Count == 0)
+            if (items.Count == 0 || !isActive)
                 return;
 
             StopCoroutine("DisableAnimator");
@@ -137,7 +138,7 @@ namespace Michsky.MUIP
 
                     items[index].onItemSelect.Invoke();
                     onValueChanged.Invoke(index);
-                   
+
                     selectorAnimator.Play(null);
                     selectorAnimator.StopPlayback();
 
@@ -160,7 +161,7 @@ namespace Michsky.MUIP
 
                 items[index].onItemSelect.Invoke();
                 onValueChanged.Invoke(index);
-                
+
                 selectorAnimator.Play(null);
                 selectorAnimator.StopPlayback();
 
@@ -186,7 +187,7 @@ namespace Michsky.MUIP
 
         public void NextItem()
         {
-            if (items.Count == 0)
+            if (items.Count == 0 || !isActive)
                 return;
 
             StopCoroutine("DisableAnimator");
@@ -208,7 +209,7 @@ namespace Michsky.MUIP
 
                     items[index].onItemSelect.Invoke();
                     onValueChanged.Invoke(index);
-                   
+
                     selectorAnimator.Play(null);
                     selectorAnimator.StopPlayback();
 
@@ -231,7 +232,7 @@ namespace Michsky.MUIP
 
                 items[index].onItemSelect.Invoke();
                 onValueChanged.Invoke(index);
-               
+
                 selectorAnimator.Play(null);
                 selectorAnimator.StopPlayback();
 
@@ -257,8 +258,16 @@ namespace Michsky.MUIP
         }
 
         // Obsolete
-        public void PreviousClick() {PreviousItem(); onButtonClick.Invoke(index);}
-        public void ForwardClick() { NextItem(); onButtonClick.Invoke(index);}
+        public void PreviousClick()
+        {
+            PreviousItem();
+            onButtonClick?.Invoke(index);
+        }
+        public void ForwardClick()
+        {
+            NextItem();
+            onButtonClick?.Invoke(index);
+        }
 
         public void CreateNewItem(string title)
         {
@@ -290,10 +299,10 @@ namespace Michsky.MUIP
 
             label.text = items[index].itemTitle;
             onItemTextChanged?.Invoke(label);
-            
+
             if (labelIcon != null && enableIcon) { labelIcon.sprite = items[index].itemIcon; }
             if (gameObject.activeInHierarchy) { StartCoroutine("DisableAnimator"); }
-          
+
             UpdateContentLayout();
             UpdateIndicators();
         }
@@ -309,7 +318,7 @@ namespace Michsky.MUIP
                 GameObject go = Instantiate(indicatorObject, new Vector3(0, 0, 0), Quaternion.identity);
                 go.transform.SetParent(indicatorParent, false);
                 go.name = items[i].itemTitle;
-                
+
                 Transform onObj = go.transform.Find("On");
                 Transform offObj = go.transform.Find("Off");
 

@@ -1,6 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using Michsky.MUIP;
+using DG.Tweening;
+using System.Collections;
 
 public class RubikMap : MonoBehaviour
 {
@@ -9,52 +12,68 @@ public class RubikMap : MonoBehaviour
     public float tileSize = 1.0f;
     public ArrowVisibilityManager arrowManager;
     public GameObject tilePrefab;
-    
+
     [Header("Level Data")]
     [Tooltip("Mỗi string = 1 face, ký tự = loại ô. VD: '0' = Floor, '1' = Wall, 'T' = Trap, 'S' = Sticky, 'X' = Goal, 'O' = OneWay, 'P' = Teleport, 'C' = Cracked")]
     public string[] levelRawData;
-    
+
     [Header("Special Tiles Config")]
     [Tooltip("Format: 'FaceID,X,Y,Direction' VD: '0,1,2,Up' = OneWay tại Front(1,2) hướng Up")]
     public string[] oneWayConfig;
-    
+
     [Tooltip("Format: 'FaceID1,X1,Y1,FaceID2,X2,Y2' VD: '0,1,1,2,1,1' = Teleport từ Front(1,1) đến Back(1,1)")]
     public string[] teleportPairs;
 
-    [Header("Loading Canvas")]
+    [Header("UI")]
     [SerializeField] private Canvas loadingCanvas;
+    [SerializeField] private HorizontalSelector horizontalSelector;
 
+    [Header("Camera Settings")]
+    [SerializeField] private Camera mainCamera;
+
+    [Header("Map Cursor")]
     [SerializeField] private MapCursor mapCursor;
 
     private Dictionary<FaceID, TileCell[,]> mapData = new Dictionary<FaceID, TileCell[,]>();
     private Dictionary<string, TileCoord> teleportLinks = new Dictionary<string, TileCoord>();
+    private List<GameObject> faceObjects = new List<GameObject>();
     private TileCoord playerSpawn;
     private bool hasSpawn = false;
     public event System.Action<TileCell> OnTileChanged;
+    private int currentLevelIndex = 0;
+    private List<LevelConfig> levelConfigs;
 
     void Awake()
     {
+        horizontalSelector.onValueChanged.AddListener((index) =>
+        {
+            LoadLevel(index);
+        });
+
         LevelRemoteConfig.Instance.OnLoadComplete += (levelConfigs) =>
         {
-            levelRawData = levelConfigs[0].levelRawData;
-            mapSize = levelConfigs[0].mapSize;
-            GenerateMap();
+            this.levelConfigs = levelConfigs;
 
-            RubikNavigator.Init(mapSize);
-            mapCursor.Init(this, levelConfigs[0].maxMoves);
-            arrowManager.Init();
+            for (int i = 1; i < levelConfigs.Count; i++)
+            {
+                horizontalSelector.CreateNewItem("Level " + (i + 1));
+            }
+
+            LoadLevel(0);
 
             loadingCanvas.enabled = false;
         };
     }
 
-    public void GenerateMap()
+    public IEnumerator GenerateMap(bool isLeft = true)
     {
         ValidateLevelRawDataBySize();
 
-        foreach (Transform child in transform) Destroy(child.gameObject);
-        mapData.Clear();
-        teleportLinks.Clear();
+        arrowManager.gameObject.SetActive(false);
+        mapCursor.gameObject.SetActive(false);
+        transform.parent.rotation = Quaternion.Euler(0f, 0f, 0f);
+        yield return CleanUpMapWithAnimation(isLeft).WaitForCompletion();
+
 
         float offset = (mapSize * tileSize) / 2.0f;
         float startPos = -offset + (tileSize / 2.0f);
@@ -67,6 +86,7 @@ public class RubikMap : MonoBehaviour
             faceRoot.transform.parent = transform;
             faceRoot.transform.localPosition = Vector3.zero;
             faceRoot.transform.localRotation = Quaternion.identity;
+            faceObjects.Add(faceRoot);
 
             TileCell[,] cells = new TileCell[mapSize, mapSize];
 
@@ -74,20 +94,20 @@ public class RubikMap : MonoBehaviour
             {
                 for (int x = 0; x < mapSize; x++)
                 {
-                    GetFaceTransform(i, startPos + x * tileSize, startPos + y * tileSize, offset, 
+                    GetFaceTransform(i, startPos + x * tileSize, startPos + y * tileSize, offset,
                                      out Vector3 pos, out Quaternion rot);
-                    
+
                     GameObject obj = Instantiate(tilePrefab, pos, rot, faceRoot.transform);
                     obj.name = $"Tile_{x}_{y}";
-                    
+
                     TileCell cell = obj.GetComponent<TileCell>();
                     TileType type = ParseType(fId, x, y);
-                    
+
                     cell.Initialize(fId, x, y, type);
                     cells[x, y] = cell;
                 }
             }
-            mapData.Add(fId, cells);      
+            mapData.Add(fId, cells);
         }
 
         // 2. Cấu hình OneWay
@@ -95,6 +115,130 @@ public class RubikMap : MonoBehaviour
 
         // 3. Cấu hình Teleport
         ParseTeleportConfig();
+
+        transform.position += isLeft ? Vector3.right * 20f : Vector3.left * 20f;
+        transform.DOMoveX(0f, 0.5f)
+        .OnComplete(() =>
+        {
+            RubikNavigator.Init(mapSize);
+            mapCursor.Init(this, levelConfigs[currentLevelIndex].maxMoves);
+            arrowManager.Init();
+            arrowManager.gameObject.SetActive(true);
+            mapCursor.gameObject.SetActive(true);
+            horizontalSelector.isActive = true;
+        });
+
+        //change camera solid color
+        if (levelConfigs != null && currentLevelIndex >= 0 && currentLevelIndex < levelConfigs.Count)
+        {
+            string bgColorHex = levelConfigs[currentLevelIndex].backgroundColorHex;
+            if (!string.IsNullOrEmpty(bgColorHex))
+            {
+                if (ColorUtility.TryParseHtmlString(bgColorHex, out Color bgColor))
+                {
+                    GetCameraBackgroundColorTween(bgColor, 0.5f).Play();
+                }
+            }
+        }
+    }
+
+    public Tween GetCameraBackgroundColorTween(Color targetColor, float duration)
+    {
+        if (mainCamera == null)
+            return null;
+
+        Color initialColor = mainCamera.backgroundColor;
+        return DOTween.To(() => initialColor, x => 
+        {
+            initialColor = x;
+            mainCamera.backgroundColor = initialColor;
+        }, targetColor, duration);
+    }
+
+    /// <summary>
+    /// Tải level từ danh sách levelConfigs
+    /// </summary>
+    /// <param name="levelIndex"></param>
+    public void LoadLevel(int levelIndex)
+    {
+        bool isLeft = levelIndex <= currentLevelIndex || (currentLevelIndex == 0 && levelIndex == levelConfigs.Count - 1);
+        if(currentLevelIndex == levelConfigs.Count - 1 && levelIndex == 0)
+            isLeft = false;
+        currentLevelIndex = levelIndex;
+        if (levelConfigs != null && levelIndex >= 0 && levelIndex < levelConfigs.Count)
+        {
+            horizontalSelector.isActive = false;
+            levelRawData = levelConfigs[levelIndex].levelRawData;
+            mapSize = levelConfigs[levelIndex].mapSize;
+            StartCoroutine(GenerateMap(isLeft));
+        }
+    }
+
+    /// <summary>
+    /// Tải level tiếp theo từ danh sách levelConfigs
+    /// </summary>
+    public void LoadNextLevel()
+    {
+        int nextLevelIndex = currentLevelIndex + 1;
+        if (levelConfigs != null && nextLevelIndex < levelConfigs.Count)
+        {
+            LoadLevel(nextLevelIndex);
+        }
+        else
+        {
+            Debug.Log("No more levels to load.");
+        }
+    }
+
+    public void LoadNextLevelByTriggerButton()
+    {
+        horizontalSelector.ForwardClick();
+    }
+
+    /// <summary>
+    /// Tải level trước đó từ danh sách levelConfigs
+    /// </summary>
+    public void LoadPreviousLevel()
+    {
+        int prevLevelIndex = currentLevelIndex - 1;
+        if (levelConfigs != null && prevLevelIndex >= 0)
+        {
+            LoadLevel(prevLevelIndex);
+        }
+        else
+        {
+            Debug.Log("No previous level to load.");
+        }
+    }
+
+    /// <summary>
+    /// Xóa sạch bản đồ hiện tại
+    /// </summary>
+    public Tween CleanUpMapWithAnimation(bool isLeft)
+    {
+        GameObject emptyParent = new GameObject("TempParent");
+
+        // Move it to the left with animation
+        return emptyParent.transform.DOMoveX(isLeft ? -20f : 20f, 0.5f)
+        .OnStart(() =>
+        {
+            // Create a empty parent in this position and attach all tiles to it
+            emptyParent.transform.position = transform.position;
+            emptyParent.transform.rotation = transform.rotation;
+
+            foreach (GameObject child in faceObjects)
+            {
+                child.transform.SetParent(emptyParent.transform);
+            }
+        })
+        .OnComplete(() =>
+        {
+            // Destroy the empty parent and all its children
+            Destroy(emptyParent);
+            mapData.Clear();
+            teleportLinks.Clear();
+            faceObjects.Clear();
+        });
     }
 
     /// <summary>
@@ -180,7 +324,7 @@ public class RubikMap : MonoBehaviour
         string row = levelRawData[(int)f];
         int idx = y * mapSize + x;
         if (idx >= row.Length) return TileType.Floor;
-        
+
         char c = row[idx];
         switch (c)
         {
@@ -198,7 +342,7 @@ public class RubikMap : MonoBehaviour
                 hasSpawn = true;
                 return TileType.Floor;
 
-            default:  return TileType.Floor;
+            default: return TileType.Floor;
         }
     }
 
@@ -254,7 +398,7 @@ public class RubikMap : MonoBehaviour
 
             TileCell cell1 = GetTileCell(coord1);
             TileCell cell2 = GetTileCell(coord2);
-            
+
             if (cell1 != null) cell1.SetTeleportPair(1);
             if (cell2 != null) cell2.SetTeleportPair(1);
         }
@@ -272,11 +416,11 @@ public class RubikMap : MonoBehaviour
     {
         TileCell cell = GetTileCell(c);
         if (cell == null) return false;
-        
+
         // Cracked đã vỡ = Wall
         if (cell.Type == TileType.Cracked && cell.specialData.isBroken)
             return false;
-            
+
         return cell.Type != TileType.Wall;
     }
 
@@ -294,23 +438,23 @@ public class RubikMap : MonoBehaviour
     public void DisableTeleportPair(TileCoord coord)
     {
         string key1 = $"{(int)coord.face}_{coord.x}_{coord.y}";
-        
+
         // Tìm ô đích
         if (teleportLinks.ContainsKey(key1))
         {
             TileCoord dest = teleportLinks[key1];
             string key2 = $"{(int)dest.face}_{dest.x}_{dest.y}";
-            
+
             // Xóa cả 2 chiều
             teleportLinks.Remove(key1);
             teleportLinks.Remove(key2);
         }
     }
 
-        public void ConvertTeleportPairToFloor(TileCoord coord)
+    public void ConvertTeleportPairToFloor(TileCoord coord)
     {
         string key1 = $"{(int)coord.face}_{coord.x}_{coord.y}";
-        
+
         if (!teleportLinks.ContainsKey(key1))
             return;
 
@@ -343,11 +487,11 @@ public class RubikMap : MonoBehaviour
                 if (cell != null) cell.ResetTile();
             }
         }
-        
+
         // ✅ Khôi phục lại tất cả teleport links
         teleportLinks.Clear();
         ParseTeleportConfig();
-        
+
         // Debug: Kiểm tra xem có parse lại đúng không
         Debug.Log($"[RubikMap] Reset: Teleport links count = {teleportLinks.Count}");
     }
@@ -385,7 +529,8 @@ public class RubikMap : MonoBehaviour
     void GetFaceTransform(int faceIndex, float u, float v, float offset, out Vector3 pos, out Quaternion rot)
     {
         pos = Vector3.zero; rot = Quaternion.identity;
-        switch(faceIndex) {
+        switch (faceIndex)
+        {
             case 0: pos = new Vector3(u, v, -offset); rot = Quaternion.Euler(-90, 0, 0); break;
             case 1: pos = new Vector3(u, offset, v); rot = Quaternion.Euler(0, 0, 0); break;
             case 2: pos = new Vector3(-u, v, offset); rot = Quaternion.Euler(90, 0, 180); break;

@@ -185,7 +185,7 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
                 continue;
 
             // FACE data: từ cột thứ 2 trở đi
-            int faceCount = Mathf.Max(0, cols.Length - 3);
+            int faceCount = 6;
             string[] faces = new string[faceCount];
 
             for (int f = 0; f < faceCount; f++)
@@ -193,12 +193,20 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
                 faces[f] = cols[f + 3].Trim();
             }
 
+            // Col: last col = background color hex (optional)
+            string bgColorHex = "";
+            if (cols.Length >= 10)
+            {
+                bgColorHex = cols[9].Trim();
+            }
+
             LevelConfig config = new LevelConfig
             {
                 levelID = levelId,
                 mapSize = mapSize,
                 maxMoves = maxMoves,
-                levelRawData = faces
+                levelRawData = faces,
+                backgroundColorHex = bgColorHex
             };
 
             levelConfigs.Add(config);
@@ -213,6 +221,7 @@ public class LevelConfig
     public int mapSize;
     public int maxMoves;
     public string[] levelRawData;
+    public string backgroundColorHex;
 
     public string ToCSVRow()
     {

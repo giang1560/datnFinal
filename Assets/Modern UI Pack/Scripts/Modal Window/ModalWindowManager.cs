@@ -106,6 +106,25 @@ namespace Michsky.MUIP
 
             StopCoroutine("DisableObject");
             mwAnimator.Play("Fade-in");
+
+            UpdateUI();
+        }
+
+        public void Open(bool removeCancelButton)
+        {
+            if (isOn)
+                return;
+
+
+            isOn = true;
+            gameObject.SetActive(true);
+            onOpen.Invoke();
+
+            StopCoroutine("DisableObject");
+            mwAnimator.Play("Fade-in");
+
+            showCancelButton = !removeCancelButton;
+            UpdateUI();
         }
 
         public void Close()
