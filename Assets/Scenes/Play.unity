@@ -9883,7 +9883,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 272.5, y: -15}
-  m_SizeDelta: {x: 0, y: 30}
+  m_SizeDelta: {x: 140.97, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1109793697
 MonoBehaviour:
@@ -11177,7 +11177,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
   m_AnchoredPosition: {x: 31, y: 0}
-  m_SizeDelta: {x: 0, y: 20}
+  m_SizeDelta: {x: 10.86, y: 20}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1294032177
 MonoBehaviour:
@@ -12127,54 +12127,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!1 &1364111337
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1364111339}
-  - component: {fileID: 1364111338}
-  m_Layer: 0
-  m_Name: LEVEL_REMOTE_CONFIG
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1364111338
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1364111337}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a3347f6569ed0e478ff73bde7806c53, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LevelRemoteConfig
-  csvUrl: https://docs.google.com/spreadsheets/d/11Bo3ZAauB9OGIlr_gVgSJL8Zlt2HGkI0YyL4RMZZSdY/export?format=csv#?gid=0#gid=0
-  loadFromLocal: 0
-  levelConfigs: []
-  myProgressBar: {fileID: 65347798}
---- !u!4 &1364111339
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1364111337}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.15, y: 0.105, z: 0.15}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1380168923
 GameObject:
   m_ObjectHideFlags: 0
@@ -12320,7 +12272,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1399801036
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15778,7 +15730,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
   m_AnchoredPosition: {x: 31, y: 0}
-  m_SizeDelta: {x: 0, y: 20}
+  m_SizeDelta: {x: 10.86, y: 20}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1959760923
 MonoBehaviour:
@@ -16819,7 +16771,6 @@ SceneRoots:
   - {fileID: 575260307}
   - {fileID: 791172614}
   - {fileID: 1867553700}
-  - {fileID: 1364111339}
   - {fileID: 1399801039}
   - {fileID: 1010027220}
   - {fileID: 70245035}

@@ -10,7 +10,7 @@ public class SupabaseRealtime : Singleton<SupabaseRealtime>
     WebSocket ws;
     int refId = 1;
 
-    async void Start()
+    public async UniTask Connect(Action onConnected = null)
     {
         string url =
             $"{SupabaseConfig.Url.Replace("https", "wss")}" +
@@ -18,34 +18,21 @@ public class SupabaseRealtime : Singleton<SupabaseRealtime>
             $"?apikey={SupabaseConfig.PublicKey}" +
             "&vsn=1.0.0";
 
-        Debug.Log("[Realtime] Connecting to " + url);
+        Debug.Log("[SupabaseRealtime] Connecting to " + url);
 
         ws = new WebSocket(url);
 
         ws.OnOpen += () =>
         {
-            Debug.Log("[Realtime] Connected");
+            Debug.Log("[SupabaseRealtime] Connected");
             JoinUserMaps();
+            onConnected?.Invoke();
         };
 
         ws.OnMessage += (bytes) =>
         {
             string json = Encoding.UTF8.GetString(bytes);
-            Debug.Log("[Realtime] " + json);
-
-            // var msg = JsonUtility.FromJson<RealtimeMessage>(json);
-
-            // if (msg == null || msg.@event != "postgres_changes")
-            //     return;
-
-            // var payload = msg.payload;
-            // if (payload == null)
-            //     return;
-
-            // if (payload.@new != null)
-            // {
-            //     MapService.MapRepo.Apply(payload.@new);
-            // }
+            Debug.Log("[SupabaseRealtime] " + json);
         };
 
         ws.OnError += (e) =>
@@ -112,13 +99,13 @@ public class SupabaseRealtime : Singleton<SupabaseRealtime>
         var maps = await FetchMapsAsync();
         Debug.Log("[SupabaseRealtime] Maps: " + maps.Length);
 
-        await CreateMapAsync("[Realtime] Map UniTask", "{\"tiles\":[1,2]}");
+        await CreateMapAsync("[SupabaseRealtime] Map UniTask", "{\"tiles\":[1,2]}");
     }
 
     [ContextMenu("Test Create Map")]
     public void TestCreateMap()
     {
-        CreateMapAsync("[Realtime] Map Test", "{\"tiles\":[1,2,3]}").Forget();
+        CreateMapAsync("[SupabaseRealtime] Map Test", "{\"tiles\":[1,2,3]}").Forget();
     }
 
     [ContextMenu("Test Update Map")]

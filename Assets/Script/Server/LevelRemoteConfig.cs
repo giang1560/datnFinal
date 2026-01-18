@@ -23,34 +23,34 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
     private static readonly HttpClient httpClient = new HttpClient();
 
     // Start vẫn là void; gọi async task an toàn bằng .Forget()
-    void Start()
-    {
-        // chạy async, tự huỷ khi object bị destroy
-        if (loadFromLocal)
-        {
-            //LoadFromLocalFiles();
-            OnLoadComplete?.Invoke(levelConfigs);
-            return;
-        }
-        var ct = this.GetCancellationTokenOnDestroy();
+    // void Start()
+    // {
+    //     // chạy async, tự huỷ khi object bị destroy
+    //     if (loadFromLocal)
+    //     {
+    //         //LoadFromLocalFiles();
+    //         OnLoadComplete?.Invoke(levelConfigs);
+    //         return;
+    //     }
+    //     var ct = this.GetCancellationTokenOnDestroy();
 
-        //LoadCsvWithHttpClientAsync(csvUrl, ct).Forget();
+    //     //LoadCsvWithHttpClientAsync(csvUrl, ct).Forget();
 
-        // tạo progress handler (cập nhật UI)
-        var progress = new Progress<float>(p =>
-        {
-            // đây chạy trên main thread vì hàm LoadCsvWithHttpClientAsync đảm bảo Report được gọi từ main
-            // ví dụ: update slider hoặc TMP text
-            myProgressBar.SetValue(p * 100f);
-        });
+    //     // tạo progress handler (cập nhật UI)
+    //     var progress = new Progress<float>(p =>
+    //     {
+    //         // đây chạy trên main thread vì hàm LoadCsvWithHttpClientAsync đảm bảo Report được gọi từ main
+    //         // ví dụ: update slider hoặc TMP text
+    //         myProgressBar.SetValue(p * 100f);
+    //     });
 
-        // fire-and-forget nhưng an toàn
-        LoadCsvWithHttpClientAsync(csvUrl, ct, progress).Forget();
+    //     // fire-and-forget nhưng an toàn
+    //     LoadCsvWithHttpClientAsync(csvUrl, ct, progress).Forget();
 
-    }
+    // }
 
     // Public nếu cần gọi lại từ ngoài
-    public UniTask ReloadAsync(CancellationToken ct = default)
+    public UniTask LoadLevelAsync(CancellationToken ct = default)
     {
         return LoadCsvWithHttpClientAsync(csvUrl, ct);
     }
@@ -124,7 +124,38 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
 
         // 3) Back to main thread: notify listeners
         await UniTask.SwitchToMainThread(ct);
-        OnLoadComplete?.Invoke(levelConfigs);
+    }
+
+    private async UniTask LoadCsvWithHttpClientAsync(string url, CancellationToken ct)
+    {
+        levelConfigs.Clear();
+
+        string csv = await UniTask.RunOnThreadPool(async () =>
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var linkedToken = linked.Token;
+
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            var resp = await httpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, linkedToken).ConfigureAwait(false);
+            resp.EnsureSuccessStatusCode();
+
+            var contentLength = resp.Content.Headers.ContentLength ?? -1L;
+            using var stream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            using var ms = new System.IO.MemoryStream();
+            await stream.CopyToAsync(ms, 81920, linkedToken).ConfigureAwait(false);
+
+            var bytes = ms.ToArray();
+            string text = System.Text.Encoding.UTF8.GetString(bytes);
+
+            return text;
+        }, cancellationToken: ct);
+
+        Parse(csv);
+
+        await UniTask.SwitchToMainThread(ct);
+
+        Debug.Log($"[LevelRemoteConfig] Loaded {levelConfigs.Count} level configs from remote CSV.");
     }
 
     /// <summary>
@@ -146,7 +177,7 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
         for (int i = 1; i < lines.Length; i++)
         {
             string line = lines[i];
-            Debug.Log(line);
+            //Debug.Log(line);
 
             // Skip dòng trống hoặc chỉ chứa whitespace
             if (string.IsNullOrWhiteSpace(line))
