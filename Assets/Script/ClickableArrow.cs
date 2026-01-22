@@ -22,8 +22,6 @@ public class ClickableArrow : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if(GameController.Instance.IsEditorMode)
-            return;
         // ghost preview (optional)
         ghost?.ShowPreview(startTile);
 

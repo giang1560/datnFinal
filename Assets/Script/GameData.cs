@@ -15,7 +15,8 @@ public enum TileType
     Goal,       // Đích đến
     OneWay,     // Ô một chiều (bắt buộc đi theo hướng chỉ định)
     Teleport,   // Cổng dịch chuyển
-    Cracked     // Ô nứt (đi qua 1 lần thì vỡ thành tường)
+    Cracked,    // Ô nứt (đi qua 1 lần thì vỡ thành tường),
+    Spawn
 }
 
 public enum StopReason 

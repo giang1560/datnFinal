@@ -94,6 +94,54 @@ public class VectorBasedRotator : MonoBehaviour
         currentRotation = StartCoroutine(RotateByAxisRoutine(rotationAxis, rotationAngle, onComplete));
     }
 
+    [ContextMenu("Rotate UpRight")]
+    public void RotateUpRight()
+    {
+        if (isRotating) return;
+
+        currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.right, 90f, null));
+    }
+
+    [ContextMenu("Rotate DownRight")]
+    public void RotateDownRight()
+    {
+        if (isRotating) return;
+
+        currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.right, -90f, null));
+    }
+
+    [ContextMenu("Rotate UpLeft")]
+    public void RotateUpLeft()
+    {
+        if (isRotating) return;
+
+        currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.forward, -90f, null));
+    }
+
+    [ContextMenu("Rotate DownLeft")]
+    public void RotateDownLeft()
+    {
+        if (isRotating) return;
+
+        currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.forward, 90f, null));
+    }
+
+    [ContextMenu("Rotate Left")]
+    public void RotateLeft()
+    {
+        if (isRotating) return;
+
+        currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.up, 90f, null));
+    }
+
+    [ContextMenu("Rotate Right")]
+    public void RotateRight()
+    {
+        if (isRotating) return;
+
+        currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.up, -90f, null));
+    }
+
     /// <summary>
     /// ✅ MỚI: Logic xoay đặc biệt cho Teleport
     /// 1. Tính vector AB = normalize(B - A)
@@ -172,11 +220,14 @@ public class VectorBasedRotator : MonoBehaviour
         currentRotation = StartCoroutine(RotateByAxisRoutine(rotationAxis, rotationAngle, onComplete));
     }
 
+    bool isRotating = false;
+
     /// <summary>
     /// Xoay quanh trục theo world space
     /// </summary>
     IEnumerator RotateByAxisRoutine(Vector3 axis, float angle, System.Action onComplete)
     {
+        isRotating = true;
         Quaternion startRotation = rubikCube.rotation;
         Quaternion targetWorldRotation = Quaternion.AngleAxis(angle, axis.normalized) * startRotation;
 
@@ -192,6 +243,7 @@ public class VectorBasedRotator : MonoBehaviour
         rubikCube.rotation = targetWorldRotation;
         onComplete?.Invoke();
         currentRotation = null;
+        isRotating = false;
     }
 
     public void ResetRotation()
