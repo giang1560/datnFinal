@@ -29,8 +29,6 @@ public class TileCell : MonoBehaviour
         set { if (_type != value) { _type = value; RefreshVisual(); } }
     }
 
-    
-
     public void Initialize(FaceID f, int x, int y, TileType t)
     {
         this.face = f;

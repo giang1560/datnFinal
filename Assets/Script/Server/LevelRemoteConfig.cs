@@ -14,6 +14,7 @@ public class LevelRemoteConfig : Singleton<LevelRemoteConfig>
 
     [Header("Level Data")]
     [SerializeField] private List<LevelConfig> levelConfigs = new List<LevelConfig>();
+    public List<LevelConfig> LevelConfigs => levelConfigs;
 
     [Header("Loading scene")]
     [SerializeField] private ProgressBar myProgressBar;

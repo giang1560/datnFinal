@@ -33,6 +33,8 @@ public class RubikMap : MonoBehaviour
 
     [Header("Map Cursor")]
     [SerializeField] private MapCursor mapCursor;
+    [Header("GameMode")]
+    [SerializeField] private GameMode gameMode = GameMode.Play;
 
     private Dictionary<FaceID, TileCell[,]> mapData = new Dictionary<FaceID, TileCell[,]>();
     private Dictionary<string, TileCoord> teleportLinks = new Dictionary<string, TileCoord>();
@@ -49,10 +51,32 @@ public class RubikMap : MonoBehaviour
         {
             LoadLevel(index);
         });
+    }
 
-        LevelRemoteConfig.Instance.OnLoadComplete += (levelConfigs) =>
+    void Start()
+    {
+        switch (gameMode)
         {
-            this.levelConfigs = levelConfigs;
+            case GameMode.Play:
+                InitPlayMode();
+                break;
+            case GameMode.Edit:
+                InitEditorMode();
+                break;
+            case GameMode.Online:
+                // Handle online mode if needed
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Khởi tạo chế độ chơi
+    /// </summary>
+    private void InitPlayMode()
+    {
+        DOVirtual.DelayedCall(3f, () =>
+        {
+            this.levelConfigs = LevelRemoteConfig.Instance.LevelConfigs;
 
             for (int i = 1; i < levelConfigs.Count; i++)
             {
@@ -60,9 +84,15 @@ public class RubikMap : MonoBehaviour
             }
 
             LoadLevel(0);
+        });
+    }
 
-            loadingCanvas.enabled = false;
-        };
+    /// <summary>
+    /// Khởi tạo chế độ chỉnh sửa
+    /// </summary>
+    private void InitEditorMode()
+    {
+        StartCoroutine(GenerateMap(true));
     }
 
     public IEnumerator GenerateMap(bool isLeft = true)
@@ -116,12 +146,19 @@ public class RubikMap : MonoBehaviour
         // 3. Cấu hình Teleport
         ParseTeleportConfig();
 
+        Debug.Log($"[RubikMap] Animation start. isLeft={isLeft}");
+
         transform.position += isLeft ? Vector3.right * 20f : Vector3.left * 20f;
         transform.DOMoveX(0f, 0.5f)
         .OnComplete(() =>
         {
+            Debug.Log("[RubikMap] Map generation complete.");
             RubikNavigator.Init(mapSize);
+            if(gameMode == GameMode.Play)
             mapCursor.Init(this, levelConfigs[currentLevelIndex].maxMoves);
+            else
+            mapCursor.Init(this, 10);
+
             arrowManager.Init();
             arrowManager.gameObject.SetActive(true);
             mapCursor.gameObject.SetActive(true);
@@ -148,7 +185,7 @@ public class RubikMap : MonoBehaviour
             return null;
 
         Color initialColor = mainCamera.backgroundColor;
-        return DOTween.To(() => initialColor, x => 
+        return DOTween.To(() => initialColor, x =>
         {
             initialColor = x;
             mainCamera.backgroundColor = initialColor;
@@ -162,7 +199,7 @@ public class RubikMap : MonoBehaviour
     public void LoadLevel(int levelIndex)
     {
         bool isLeft = levelIndex <= currentLevelIndex || (currentLevelIndex == 0 && levelIndex == levelConfigs.Count - 1);
-        if(currentLevelIndex == levelConfigs.Count - 1 && levelIndex == 0)
+        if (currentLevelIndex == levelConfigs.Count - 1 && levelIndex == 0)
             isLeft = false;
         currentLevelIndex = levelIndex;
         if (levelConfigs != null && levelIndex >= 0 && levelIndex < levelConfigs.Count)
@@ -273,13 +310,14 @@ public class RubikMap : MonoBehaviour
                         case TileType.OneWay: c = 'O'; break;
                         case TileType.Teleport: c = 'P'; break;
                         case TileType.Cracked: c = 'C'; break;
+                        case TileType.Spawn: c = 'M'; break;
                     }
 
                     // Đánh dấu spawn
-                    if (playerSpawn.face == f && playerSpawn.x == x && playerSpawn.y == y)
-                    {
-                        c = 'M';
-                    }
+                    // if (playerSpawn.face == f && playerSpawn.x == x && playerSpawn.y == y)
+                    // {
+                    //     c = 'M';
+                    // }
 
                     rowChars[y * mapSize + x] = c;
                 }
@@ -287,10 +325,13 @@ public class RubikMap : MonoBehaviour
 
             config.levelRawData[(int)f] = new string(rowChars);
         }
-
+        this.levelRawData = config.levelRawData;
         return config;
     }
 
+    /// <summary>
+    /// Đảm bảo dữ liệu levelRawData đúng với kích thước mapSize và hợp lệ
+    /// </summary>
     void ValidateLevelRawDataBySize()
     {
         int rowLength = mapSize * mapSize;
@@ -340,7 +381,7 @@ public class RubikMap : MonoBehaviour
                 // đánh dấu spawn
                 playerSpawn = new TileCoord(f, x, y);
                 hasSpawn = true;
-                return TileType.Floor;
+                return TileType.Spawn;
 
             default: return TileType.Floor;
         }
@@ -480,13 +521,13 @@ public class RubikMap : MonoBehaviour
     public void ResetAllTiles()
     {
         // Reset visual và state của tiles
-        foreach (var facePair in mapData)
-        {
-            foreach (TileCell cell in facePair.Value)
-            {
-                if (cell != null) cell.ResetTile();
-            }
-        }
+        // foreach (var facePair in mapData)
+        // {
+        //     foreach (TileCell cell in facePair.Value)
+        //     {
+        //         if (cell != null) cell.ResetTile();
+        //     }
+        // }
 
         // ✅ Khôi phục lại tất cả teleport links
         teleportLinks.Clear();
@@ -494,6 +535,15 @@ public class RubikMap : MonoBehaviour
 
         // Debug: Kiểm tra xem có parse lại đúng không
         Debug.Log($"[RubikMap] Reset: Teleport links count = {teleportLinks.Count}");
+
+        if(gameMode == GameMode.Edit)
+        {
+            StartCoroutine(GenerateMap(true));
+        }
+        else
+        {
+            LoadLevel(currentLevelIndex);
+        }
     }
 
     // --- HELPERS ---
@@ -556,7 +606,7 @@ public class RubikMap : MonoBehaviour
                 for (int y = 0; y < mapSize; y++)
                 {
                     TileCell c = cells[x, y];
-                    if (c != null && c.Type == TileType.Floor)
+                    if (c != null && c.Type == TileType.Spawn)
                         return new TileCoord(face, x, y);
                 }
             }
@@ -570,4 +620,11 @@ public class RubikMap : MonoBehaviour
         TileCell cell = GetTileCell(c);
         return cell ? cell.transform.position : Vector3.zero;
     }
+}
+
+public enum GameMode
+{
+    Play,
+    Edit,
+    Online
 }
