@@ -21,8 +21,8 @@ public class RubikMap : MonoBehaviour
     [Tooltip("Format: 'FaceID,X,Y,Direction' VD: '0,1,2,Up' = OneWay tại Front(1,2) hướng Up")]
     public string[] oneWayConfig;
 
-    [Tooltip("Format: 'FaceID1,X1,Y1,FaceID2,X2,Y2' VD: '0,1,1,2,1,1' = Teleport từ Front(1,1) đến Back(1,1)")]
-    public string[] teleportPairs;
+    // [Tooltip("Format: 'FaceID1,X1,Y1,FaceID2,X2,Y2' VD: '0,1,1,2,1,1' = Teleport từ Front(1,1) đến Back(1,1)")]
+    // public string[] teleportPairs;
 
     [Header("UI")]
     [SerializeField] private Canvas loadingCanvas;
@@ -37,7 +37,8 @@ public class RubikMap : MonoBehaviour
     [SerializeField] private GameMode gameMode = GameMode.Play;
 
     private Dictionary<FaceID, TileCell[,]> mapData = new Dictionary<FaceID, TileCell[,]>();
-    private Dictionary<string, TileCoord> teleportLinks = new Dictionary<string, TileCoord>();
+    //private Dictionary<string, TileCoord> teleportLinks = new Dictionary<string, TileCoord>();
+    private List<TileCoord> teleportLinks = new List<TileCoord>();
     private List<GameObject> faceObjects = new List<GameObject>();
     private TileCoord playerSpawn;
     private bool hasSpawn = false;
@@ -133,6 +134,11 @@ public class RubikMap : MonoBehaviour
                     TileCell cell = obj.GetComponent<TileCell>();
                     TileType type = ParseType(fId, x, y);
 
+                    if(type == TileType.Teleport)
+                    {
+                        teleportLinks.Add(new TileCoord(fId, x, y));
+                    }
+
                     cell.Initialize(fId, x, y, type);
                     cells[x, y] = cell;
                 }
@@ -144,7 +150,7 @@ public class RubikMap : MonoBehaviour
         ParseOneWayConfig();
 
         // 3. Cấu hình Teleport
-        ParseTeleportConfig();
+        //ParseTeleportConfig();
 
         Debug.Log($"[RubikMap] Animation start. isLeft={isLeft}");
 
@@ -411,39 +417,39 @@ public class RubikMap : MonoBehaviour
     }
 
     // --- TELEPORT CONFIG ---
-    void ParseTeleportConfig()
-    {
-        if (teleportPairs == null) return;
+    // void ParseTeleportConfig()
+    // {
+    //     if (teleportPairs == null) return;
 
-        foreach (string pair in teleportPairs)
-        {
-            string[] parts = pair.Split(',');
-            if (parts.Length < 6) continue;
+    //     foreach (string pair in teleportPairs)
+    //     {
+    //         string[] parts = pair.Split(',');
+    //         if (parts.Length < 6) continue;
 
-            FaceID face1 = (FaceID)int.Parse(parts[0].Trim());
-            int x1 = int.Parse(parts[1].Trim());
-            int y1 = int.Parse(parts[2].Trim());
+    //         FaceID face1 = (FaceID)int.Parse(parts[0].Trim());
+    //         int x1 = int.Parse(parts[1].Trim());
+    //         int y1 = int.Parse(parts[2].Trim());
 
-            FaceID face2 = (FaceID)int.Parse(parts[3].Trim());
-            int x2 = int.Parse(parts[4].Trim());
-            int y2 = int.Parse(parts[5].Trim());
+    //         FaceID face2 = (FaceID)int.Parse(parts[3].Trim());
+    //         int x2 = int.Parse(parts[4].Trim());
+    //         int y2 = int.Parse(parts[5].Trim());
 
-            TileCoord coord1 = new TileCoord(face1, x1, y1);
-            TileCoord coord2 = new TileCoord(face2, x2, y2);
+    //         TileCoord coord1 = new TileCoord(face1, x1, y1);
+    //         TileCoord coord2 = new TileCoord(face2, x2, y2);
 
-            string key1 = $"{(int)face1}_{x1}_{y1}";
-            string key2 = $"{(int)face2}_{x2}_{y2}";
+    //         string key1 = $"{(int)face1}_{x1}_{y1}";
+    //         string key2 = $"{(int)face2}_{x2}_{y2}";
 
-            teleportLinks[key1] = coord2;
-            teleportLinks[key2] = coord1; // Hai chiều
+    //         teleportLinks[key1] = coord2;
+    //         teleportLinks[key2] = coord1; // Hai chiều
 
-            TileCell cell1 = GetTileCell(coord1);
-            TileCell cell2 = GetTileCell(coord2);
+    //         TileCell cell1 = GetTileCell(coord1);
+    //         TileCell cell2 = GetTileCell(coord2);
 
-            if (cell1 != null) cell1.SetTeleportPair(1);
-            if (cell2 != null) cell2.SetTeleportPair(1);
-        }
-    }
+    //         if (cell1 != null) cell1.SetTeleportPair(1);
+    //         if (cell2 != null) cell2.SetTeleportPair(1);
+    //     }
+    // }
 
     // --- PUBLIC API ---
     public TileCell GetTileCell(TileCoord c)
@@ -467,54 +473,67 @@ public class RubikMap : MonoBehaviour
 
     public TileCoord GetTeleportDestination(TileCoord from)
     {
-        string key = $"{(int)from.face}_{from.x}_{from.y}";
-        if (teleportLinks.ContainsKey(key))
+        // string key = $"{(int)from.face}_{from.x}_{from.y}";
+        // if (teleportLinks.ContainsKey(key))
+        // {
+        //     return teleportLinks[key];
+        // }
+        // return from; // Không tìm thấy → Trả về chính nó
+        int idx = -1;
+        for(int i = 0; i < teleportLinks.Count; i++)
         {
-            return teleportLinks[key];
+            TileCoord t = teleportLinks[i];
+            if(t.face == from.face && t.x == from.x && t.y == from.y)
+            {
+                idx = i;
+                break;
+            }
         }
-        return from; // Không tìm thấy → Trả về chính nó
+
+        int nextIdx = (idx + 1) % teleportLinks.Count;
+        return teleportLinks[nextIdx];
     }
 
     // ✅ MỚI: Vô hiệu hóa cặp teleport (xóa khỏi dictionary)
     public void DisableTeleportPair(TileCoord coord)
     {
-        string key1 = $"{(int)coord.face}_{coord.x}_{coord.y}";
+        // string key1 = $"{(int)coord.face}_{coord.x}_{coord.y}";
 
-        // Tìm ô đích
-        if (teleportLinks.ContainsKey(key1))
-        {
-            TileCoord dest = teleportLinks[key1];
-            string key2 = $"{(int)dest.face}_{dest.x}_{dest.y}";
+        // // Tìm ô đích
+        // if (teleportLinks.ContainsKey(key1))
+        // {
+        //     TileCoord dest = teleportLinks[key1];
+        //     string key2 = $"{(int)dest.face}_{dest.x}_{dest.y}";
 
-            // Xóa cả 2 chiều
-            teleportLinks.Remove(key1);
-            teleportLinks.Remove(key2);
-        }
+        //     // Xóa cả 2 chiều
+        //     teleportLinks.Remove(key1);
+        //     teleportLinks.Remove(key2);
+        // }
     }
 
     public void ConvertTeleportPairToFloor(TileCoord coord)
     {
-        string key1 = $"{(int)coord.face}_{coord.x}_{coord.y}";
+        // string key1 = $"{(int)coord.face}_{coord.x}_{coord.y}";
 
-        if (!teleportLinks.ContainsKey(key1))
-            return;
+        // if (!teleportLinks.ContainsKey(key1))
+        //     return;
 
-        TileCoord dest = teleportLinks[key1];
-        string key2 = $"{(int)dest.face}_{dest.x}_{dest.y}";
+        // TileCoord dest = teleportLinks[key1];
+        // string key2 = $"{(int)dest.face}_{dest.x}_{dest.y}";
 
-        // Lấy cell thật
-        TileCell a = GetTileCell(coord);
-        TileCell b = GetTileCell(dest);
+        // // Lấy cell thật
+        // TileCell a = GetTileCell(coord);
+        // TileCell b = GetTileCell(dest);
 
-        if (a != null)
-            a.ChangeType(TileType.Floor);
+        // if (a != null)
+        //     a.ChangeType(TileType.Floor);
 
-        if (b != null)
-            b.ChangeType(TileType.Floor);
+        // if (b != null)
+        //     b.ChangeType(TileType.Floor);
 
-        // Xóa link
-        teleportLinks.Remove(key1);
-        teleportLinks.Remove(key2);
+        // // Xóa link
+        // teleportLinks.Remove(key1);
+        // teleportLinks.Remove(key2);
     }
 
 
@@ -531,7 +550,7 @@ public class RubikMap : MonoBehaviour
 
         // ✅ Khôi phục lại tất cả teleport links
         teleportLinks.Clear();
-        ParseTeleportConfig();
+        //ParseTeleportConfig();
 
         // Debug: Kiểm tra xem có parse lại đúng không
         Debug.Log($"[RubikMap] Reset: Teleport links count = {teleportLinks.Count}");
@@ -583,7 +602,7 @@ public class RubikMap : MonoBehaviour
         {
             case 0: pos = new Vector3(u, v, -offset); rot = Quaternion.Euler(-90, 0, 0); break;
             case 1: pos = new Vector3(u, offset, v); rot = Quaternion.Euler(0, 0, 0); break;
-            case 2: pos = new Vector3(-u, v, offset); rot = Quaternion.Euler(90, 0, 180); break;
+            case 2: pos = new Vector3(-u, v, offset); rot = Quaternion.Euler(-90, 0, 180); break;
             case 3: pos = new Vector3(u, -offset, -v); rot = Quaternion.Euler(180, 0, 0); break;
             case 4: pos = new Vector3(-offset, v, -u); rot = Quaternion.Euler(0, 0, 90); break;
             case 5: pos = new Vector3(offset, v, u); rot = Quaternion.Euler(0, 0, -90); break;

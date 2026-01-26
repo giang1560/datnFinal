@@ -59,13 +59,15 @@ public class MapCursor : MonoBehaviour
 
         foreach (SimulationStep step in sim.steps)
         {
+            Debug.Log($"[MapCursor] Moving to {step.coord} (Result: {step.stepResult}, FaceChange: {step.isFaceChange})");
+
             TileCoord previousTile = currentTile;
             currentTile = step.coord;
 
-            TileCell cell = map.GetTileCell(step.coord);
-            if (cell)
+            TileCell currentCell = map.GetTileCell(step.coord);
+            if (currentCell)
             {
-                Vector3 currentWorldPos = cell.transform.position;
+                Vector3 currentWorldPos = currentCell.transform.position;
                 yield return MoveTo(currentWorldPos);
 
                 // ✅ Xử lý Cracked tile NGAY KHI RỜI đi
@@ -81,50 +83,43 @@ public class MapCursor : MonoBehaviour
                     // Đổi cả 2 ô teleport thành Floor
                     TileCell sourceCell = map.GetTileCell(previousTile);
                     TileCell destCell = map.GetTileCell(currentTile);
-                    
+                    Debug.Log("[MapCursor] source cell forward vector: " + sourceCell?.transform.forward);
+                    Debug.Log("[MapCursor] dest cell forward vector: " + destCell?.transform.forward);
+
                     if (sourceCell != null && sourceCell.Type == TileType.Teleport)
                         sourceCell.Type = TileType.Floor;
                     if (destCell != null && destCell.Type == TileType.Teleport)
                         destCell.Type = TileType.Floor;
-                        
+
                     Debug.Log($"[MapCursor] Teleport used: {previousTile} ↔ {currentTile}");
                 }
 
                 // ─────────────────────────────────────────────────
                 // ✅ ROTATION LOGIC: Phân biệt Teleport và Face Change
                 // ─────────────────────────────────────────────────
-                if (enableRotation && vectorRotator != null)
+                if (enableRotation && vectorRotator != null && step.isFaceChange)
                 {
-                    // 🔷 Case 1: TELEPORT → Dùng RotateForTeleport()
+                    bool rotationComplete = false;
+
+                    Debug.Log($"[MapCursor] Face change rotation: {previousWorldPos} → {currentWorldPos}");
                     if (step.stepResult == StopReason.Teleported)
                     {
-                        bool rotationComplete = false;
-
-                        Debug.Log($"[MapCursor] Teleport rotation: {previousWorldPos} → {currentWorldPos}");
-                        
                         vectorRotator.RotateForTeleport(
-                            previousWorldPos,
-                            currentWorldPos,
-                            () => rotationComplete = true
+                        previousCell.transform.up,
+                        currentCell.transform.up,
+                        () => rotationComplete = true
                         );
-
-                        yield return new WaitUntil(() => rotationComplete);
                     }
-                    // 🔷 Case 2: FACE CHANGE (Normal) → Dùng RotateBasedOnMovement()
-                    else if (step.isFaceChange)
+                    else
                     {
-                        bool rotationComplete = false;
-
-                        Debug.Log($"[MapCursor] Face change rotation: {previousWorldPos} → {currentWorldPos}");
-                        
                         vectorRotator.RotateBasedOnMovement(
                             previousWorldPos,
                             currentWorldPos,
                             () => rotationComplete = true
                         );
-
-                        yield return new WaitUntil(() => rotationComplete);
                     }
+
+                    yield return new WaitUntil(() => rotationComplete);
                 }
 
                 previousWorldPos = currentWorldPos;
@@ -156,7 +151,7 @@ public class MapCursor : MonoBehaviour
 
     void HandleStop(StopReason reason)
     {
-        if(movesLeft <= 0 && reason != StopReason.Goal && reason != StopReason.Trap)
+        if (movesLeft <= 0 && reason != StopReason.Goal && reason != StopReason.Trap)
         {
             reason = StopReason.OutOfMoves;
         }

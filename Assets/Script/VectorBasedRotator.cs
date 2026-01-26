@@ -150,23 +150,24 @@ public class VectorBasedRotator : MonoBehaviour
     /// 4. Tính dot với ±X, ±Z
     /// 5. Hướng có dot lớn nhất quyết định góc xoay
     /// </summary>
-    public void RotateForTeleport(Vector3 fromPos, Vector3 toPos, System.Action onComplete = null)
+    public void RotateForTeleport(Vector3 fromPosForwardVector, Vector3 toPosForwardVector, System.Action onComplete = null)
     {
+        Debug.Log("[Teleport] Calculating rotation based on forward vectors:");
+        Debug.Log($"[Teleport] From forward: {fromPosForwardVector}, To forward: {toPosForwardVector}");
         // 1️⃣ Tính vector AB
-        Vector3 AB = (toPos - fromPos).normalized;
+        Vector3 AB = (toPosForwardVector - fromPosForwardVector).normalized;
 
-        Debug.Log($"[Teleport] AB = {AB}, |AB.y| = {Mathf.Abs(AB.y)}");
-
-        // 2️⃣ Kiểm tra chuyển động theo trục Y (lên/xuống)
-        if (Mathf.Abs(AB.y) > verticalThreshold)
+        // Kiểm tra xem 2 Vector cùng phương ngược hướng không
+        float dot = Vector3.Dot(fromPosForwardVector.normalized, toPosForwardVector.normalized);
+        Debug.Log($"[Teleport] AB Vector: {AB}, Dot product: {dot}");
+        if (dot < -0.99f)
         {
-            Debug.Log($"[Teleport] Vertical movement detected → Rotate X 180°");
-            
             if (currentRotation != null)
                 StopCoroutine(currentRotation);
 
             currentRotation = StartCoroutine(RotateByAxisRoutine(Vector3.right, 180f, onComplete));
             return;
+
         }
 
         // 3️⃣ Chiếu lên mặt phẳng XZ
