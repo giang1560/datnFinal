@@ -63,6 +63,20 @@ public struct TileCoord
     {
         return $"{face}({x},{y})";
     }
+
+    public override bool Equals(object obj)
+    {
+        if (!(obj is TileCoord))
+            return false;
+
+        TileCoord other = (TileCoord)obj;
+        return this.face == other.face && this.x == other.x && this.y == other.y;
+    }
+
+    public override int GetHashCode()
+    {
+        return face.GetHashCode() ^ x.GetHashCode() ^ y.GetHashCode();
+    }
 }
 
 

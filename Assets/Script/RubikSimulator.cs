@@ -134,7 +134,7 @@ public class RubikSimulator
                 case TileType.Teleport:
                 {
                     TileCoord destination = map.GetTeleportDestination(current);
-
+                    Debug.Log($"[Simulation] Teleport from {current} to {destination}");
                     // Nếu tele tới chính nó → coi như Sticky
                     if (destination.face == current.face &&
                         destination.x == current.x &&
