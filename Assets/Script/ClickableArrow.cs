@@ -1,9 +1,11 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class ClickableArrow : MonoBehaviour, IPointerClickHandler
+public class ClickableArrow : MonoBehaviour,
+    IPointerEnterHandler,
+    IPointerExitHandler,
+    IPointerClickHandler
 {
-    [HideInInspector]
     public TileCoord startTile;
 
     private PlayerInputController input;
@@ -15,17 +17,24 @@ public class ClickableArrow : MonoBehaviour, IPointerClickHandler
         ghost = FindFirstObjectByType<GhostManager>();
     }
 
-    public void Setup(TileCoord tile)
+        public void Setup(TileCoord tile)
     {
         startTile = tile;
     }
 
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        ghost?.ShowPreview(startTile);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        ghost?.HideGhost();
+    }
+
     public void OnPointerClick(PointerEventData eventData)
     {
-        // ghost preview (optional)
-        ghost?.ShowPreview(startTile);
-
-        // gửi lệnh di chuyển
+        ghost?.HideGhost();
         input?.OnArrowClicked(startTile);
     }
 }

@@ -49,7 +49,6 @@ public class MapCursor : MonoBehaviour
     {
         isAnimating = true;
         arrowManager.ClearArrows();
-        ghost.HideGhost();
 
         movesLeft--;
 
@@ -193,8 +192,6 @@ public class MapCursor : MonoBehaviour
 
         currentTile = map.GetPlayerSpawn();
         transform.position = map.GetWorldPosition(currentTile);
-
-        ghost?.HideGhost();
 
         if (arrowManager != null)
         {

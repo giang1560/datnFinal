@@ -154,7 +154,6 @@ public class RubikSimulator
                     };
                     result.steps.Add(teleStep);
 
-                    // ⭐⭐⭐ QUAN TRỌNG ⭐⭐⭐
                     // Biến cả 2 ô teleport thành FLOOR trên MAP THẬT
                     map.ConvertTeleportPairToFloor(current);
 
